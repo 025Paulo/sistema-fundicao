@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.control.*?>
+<?import org.kordamp.ikonli.javafx.*?>
+
+<VBox xmlns="http://javafx.com/javafx/17"
+      xmlns:fx="http://javafx.com/fxml/1"
+      spacing="0">
+
+    <VBox styleClass="module-header">
+        <HBox alignment="CENTER_LEFT" spacing="10">
+            <FontIcon iconLiteral="mdi2w-warehouse" iconSize="26" styleClass="nav-icon"/>
+            <VBox>
+                <Label text="Estoque" styleClass="module-title"/>
+                <Label text="Movimentações de entrada e saída" styleClass="module-subtitle"/>
+            </VBox>
+        </HBox>
+    </VBox>
+
+    <HBox styleClass="filter-bar" alignment="CENTER_LEFT" spacing="10">
+        <TextField promptText="Buscar..." prefWidth="260" styleClass="text-field"/>
+        <Region HBox.hgrow="ALWAYS"/>
+        <Button text="+ Adicionar" styleClass="btn-primary"/>
+    </HBox>
+
+    <Region prefHeight="16"/>
+
+    <TableView VBox.vgrow="ALWAYS" styleClass="table-view">
+        <columns>
+            <TableColumn text="Descrição" prefWidth="350"/>
+            <TableColumn text="Informação 1" prefWidth="180"/>
+            <TableColumn text="Informação 2" prefWidth="180"/>
+            <TableColumn text="Data" prefWidth="120"/>
+        </columns>
+        <placeholder>
+            <Label text="Nenhum registro encontrado."
+                   style="-fx-text-fill: #9CA3AF; -fx-font-size: 13px;"/>
+        </placeholder>
+    </TableView>
+
+    <HBox styleClass="filter-bar" alignment="CENTER_LEFT" spacing="16"
+          style="-fx-padding: 10 16 10 16;">
+        <Label text="Total: 0 registros"
+               style="-fx-font-size: 12px; -fx-text-fill: #6B7280;"/>
+        <Region HBox.hgrow="ALWAYS"/>
+        <Button text="Alterar" styleClass="btn-secondary"/>
+        <Button text="Excluir" styleClass="btn-danger"/>
+    </HBox>
+
+</VBox>
