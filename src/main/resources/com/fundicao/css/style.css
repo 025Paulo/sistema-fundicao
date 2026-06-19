@@ -246,3 +246,42 @@
     -fx-font-weight: bold;
     -fx-text-fill: -color-text;
 }
+/* ── Painel de detalhes ─────────────────────────── */
+.detalhe-painel {
+    -fx-background-color: #F8FAFC;
+    -fx-border-color: #E2E8F0;
+    -fx-border-width: 1 0 0 0;
+    -fx-padding: 12 16 14 16;
+    -fx-transform-origin: top center;
+}
+
+.detalhe-header {
+    -fx-padding: 0 0 8 0;
+}
+
+.detalhe-titulo {
+    -fx-font-size: 12px;
+    -fx-font-weight: 600;
+    -fx-text-fill: #374151;
+}
+
+.detalhe-grid {
+    -fx-padding: 4 0 0 0;
+}
+
+.detalhe-valor {
+    -fx-font-size: 12px;
+    -fx-text-fill: #111827;
+}
+
+.btn-fechar {
+    -fx-background-color: transparent;
+    -fx-text-fill: #9CA3AF;
+    -fx-font-size: 11px;
+    -fx-cursor: hand;
+    -fx-padding: 2 6 2 6;
+}
+
+.btn-fechar:hover {
+    -fx-text-fill: #374151;
+}

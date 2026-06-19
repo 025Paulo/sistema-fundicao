@@ -5,6 +5,7 @@
 
 <VBox xmlns="http://javafx.com/javafx/17"
       xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="com.fundicao.controller.ProdutoController"
       spacing="0">
 
     <VBox styleClass="module-header">
@@ -12,39 +13,78 @@
             <FontIcon iconLiteral="mdi2c-cube-outline" iconSize="26" styleClass="nav-icon"/>
             <VBox>
                 <Label text="Produtos" styleClass="module-title"/>
-                <Label text="Cadastro de produtos e vínculos" styleClass="module-subtitle"/>
+                <Label text="Cadastro de produtos e vínculos com fornecedores" styleClass="module-subtitle"/>
             </VBox>
         </HBox>
     </VBox>
 
     <HBox styleClass="filter-bar" alignment="CENTER_LEFT" spacing="10">
-        <TextField promptText="Buscar..." prefWidth="260" styleClass="text-field"/>
+        <TextField fx:id="campoBusca" promptText="Buscar por descrição ou NCM..."
+                   prefWidth="300" styleClass="text-field"/>
         <Region HBox.hgrow="ALWAYS"/>
-        <Button text="+ Adicionar" styleClass="btn-primary"/>
+        <Button text="+ Adicionar" styleClass="btn-primary" onAction="#adicionar"/>
     </HBox>
 
     <Region prefHeight="16"/>
 
-    <TableView VBox.vgrow="ALWAYS" styleClass="table-view">
+    <TableView fx:id="tabela" VBox.vgrow="ALWAYS" styleClass="table-view">
         <columns>
-            <TableColumn text="Descrição" prefWidth="350"/>
-            <TableColumn text="Informação 1" prefWidth="180"/>
-            <TableColumn text="Informação 2" prefWidth="180"/>
-            <TableColumn text="Data" prefWidth="120"/>
+            <TableColumn fx:id="colDescricao"   text="Descrição"     prefWidth="400"/>
+            <TableColumn fx:id="colNCM"         text="NCM"           prefWidth="140"/>
+            <TableColumn fx:id="colFornecedores" text="Fornecedores" prefWidth="140"/>
         </columns>
         <placeholder>
-            <Label text="Nenhum registro encontrado."
+            <Label text="Nenhum produto cadastrado."
                    style="-fx-text-fill: #9CA3AF; -fx-font-size: 13px;"/>
         </placeholder>
     </TableView>
 
+    <!-- Painel de detalhes -->
+    <VBox fx:id="painelDetalhes" styleClass="detalhe-painel" managed="false" visible="false">
+        <HBox alignment="CENTER_LEFT" spacing="6" styleClass="detalhe-header">
+            <FontIcon iconLiteral="mdi2i-information-outline" iconSize="14"
+                      style="-fx-fill: #6B7280;"/>
+            <Label fx:id="labelNomeDetalhe" styleClass="detalhe-titulo"/>
+            <Region HBox.hgrow="ALWAYS"/>
+            <Button text="✕" styleClass="btn-fechar" onAction="#fecharDetalhes"/>
+        </HBox>
+
+        <HBox spacing="32" style="-fx-padding: 0 0 8 0;">
+            <VBox spacing="2">
+                <Label text="NCM" style="-fx-text-fill:#9CA3AF; -fx-font-size:11px;"/>
+                <Label fx:id="dNcm" styleClass="detalhe-valor"/>
+            </VBox>
+            <VBox spacing="2">
+                <Label text="Cadastrado em" style="-fx-text-fill:#9CA3AF; -fx-font-size:11px;"/>
+                <Label fx:id="dCriadoEm" styleClass="detalhe-valor"/>
+            </VBox>
+        </HBox>
+
+        <Label text="Fornecedores vinculados"
+               style="-fx-text-fill:#9CA3AF; -fx-font-size:11px; -fx-padding: 4 0 4 0;"/>
+
+        <TableView fx:id="tabelaFornecedores" prefHeight="120" styleClass="table-view">
+            <columns>
+                <TableColumn fx:id="colFornNome"  text="Fornecedor"   prefWidth="260"/>
+                <TableColumn fx:id="colFornPeso"  text="Peso (kg)"    prefWidth="100"/>
+                <TableColumn fx:id="colFornVrKg"  text="Vr/kg"        prefWidth="100"/>
+                <TableColumn fx:id="colFornVrPeca" text="Vr/peça"     prefWidth="100"/>
+                <TableColumn fx:id="colFornVrTotal" text="Vr Total"   prefWidth="110"/>
+            </columns>
+            <placeholder>
+                <Label text="Nenhum fornecedor vinculado."
+                       style="-fx-text-fill: #9CA3AF; -fx-font-size: 12px;"/>
+            </placeholder>
+        </TableView>
+    </VBox>
+
     <HBox styleClass="filter-bar" alignment="CENTER_LEFT" spacing="16"
           style="-fx-padding: 10 16 10 16;">
-        <Label text="Total: 0 registros"
+        <Label fx:id="labelTotal" text="Total: 0 produtos"
                style="-fx-font-size: 12px; -fx-text-fill: #6B7280;"/>
         <Region HBox.hgrow="ALWAYS"/>
-        <Button text="Alterar" styleClass="btn-secondary"/>
-        <Button text="Excluir" styleClass="btn-danger"/>
+        <Button text="Alterar" styleClass="btn-secondary" onAction="#alterar"/>
+        <Button text="Excluir" styleClass="btn-danger"    onAction="#excluir"/>
     </HBox>
 
 </VBox>

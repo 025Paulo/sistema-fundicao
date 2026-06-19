@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.control.*?>
+
+<VBox xmlns="http://javafx.com/javafx/17"
+      xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="com.fundicao.controller.ProdutoDialogController"
+      spacing="14" style="-fx-padding: 20; -fx-min-width: 600;">
+
+    <!-- Dados do produto -->
+    <GridPane hgap="12" vgap="10">
+        <columnConstraints>
+            <ColumnConstraints percentWidth="70"/>
+            <ColumnConstraints percentWidth="30"/>
+        </columnConstraints>
+        <Label text="Descrição *" GridPane.columnIndex="0" GridPane.rowIndex="0"/>
+        <TextField fx:id="campoDescricao" GridPane.columnIndex="0" GridPane.rowIndex="1"/>
+
+        <Label text="NCM (Classificação Fiscal)" GridPane.columnIndex="1" GridPane.rowIndex="0"/>
+        <TextField fx:id="campoNcm" GridPane.columnIndex="1" GridPane.rowIndex="1"/>
+    </GridPane>
+
+    <Separator/>
+
+    <Label text="Fornecedores" style="-fx-font-weight: 600; -fx-font-size: 13px;"/>
+
+    <!-- Tabela de fornecedores vinculados -->
+    <TableView fx:id="tabelaForn" prefHeight="130">
+        <columns>
+            <TableColumn fx:id="colFNome"   text="Fornecedor"  prefWidth="200"/>
+            <TableColumn fx:id="colFPeso"   text="Peso (kg)"   prefWidth="90"/>
+            <TableColumn fx:id="colFVrKg"   text="Vr/kg"       prefWidth="90"/>
+            <TableColumn fx:id="colFVrPeca" text="Vr/peça"     prefWidth="90"/>
+            <TableColumn fx:id="colFVrTotal" text="Vr Total"   prefWidth="100"/>
+        </columns>
+        <placeholder>
+            <Label text="Nenhum fornecedor adicionado."
+                   style="-fx-text-fill: #9CA3AF; -fx-font-size: 12px;"/>
+        </placeholder>
+    </TableView>
+
+    <!-- Formulário para adicionar fornecedor -->
+    <GridPane hgap="10" vgap="8">
+        <columnConstraints>
+            <ColumnConstraints percentWidth="35"/>
+            <ColumnConstraints percentWidth="16"/>
+            <ColumnConstraints percentWidth="16"/>
+            <ColumnConstraints percentWidth="16"/>
+            <ColumnConstraints percentWidth="17"/>
+        </columnConstraints>
+
+        <Label text="Fornecedor"  GridPane.columnIndex="0" GridPane.rowIndex="0"/>
+        <Label text="Peso (kg)"   GridPane.columnIndex="1" GridPane.rowIndex="0"/>
+        <Label text="Vr/kg"       GridPane.columnIndex="2" GridPane.rowIndex="0"/>
+        <Label text="Vr/peça"     GridPane.columnIndex="3" GridPane.rowIndex="0"/>
+        <Label text="Vr Total"    GridPane.columnIndex="4" GridPane.rowIndex="0"/>
+
+        <ComboBox fx:id="comboFornecedor" maxWidth="Infinity"
+                  GridPane.columnIndex="0" GridPane.rowIndex="1"/>
+        <TextField fx:id="campoPeso"    GridPane.columnIndex="1" GridPane.rowIndex="1"/>
+        <TextField fx:id="campoVrKg"    GridPane.columnIndex="2" GridPane.rowIndex="1"/>
+        <TextField fx:id="campoVrPeca"  GridPane.columnIndex="3" GridPane.rowIndex="1"/>
+        <TextField fx:id="campoVrTotal" GridPane.columnIndex="4" GridPane.rowIndex="1"/>
+    </GridPane>
+
+    <HBox spacing="8" alignment="CENTER_RIGHT">
+        <Button text="+ Adicionar Fornecedor" styleClass="btn-secondary"
+                onAction="#adicionarFornecedor"/>
+        <Button text="Remover Selecionado" styleClass="btn-danger"
+                onAction="#removerFornecedor"/>
+    </HBox>
+
+</VBox>
