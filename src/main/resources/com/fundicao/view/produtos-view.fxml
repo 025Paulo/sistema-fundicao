@@ -27,57 +27,62 @@
 
     <Region prefHeight="16"/>
 
-    <TableView fx:id="tabela" VBox.vgrow="ALWAYS" styleClass="table-view">
-        <columns>
-            <TableColumn fx:id="colDescricao"   text="Descrição"     prefWidth="400"/>
-            <TableColumn fx:id="colNCM"         text="NCM"           prefWidth="140"/>
-            <TableColumn fx:id="colFornecedores" text="Fornecedores" prefWidth="140"/>
-        </columns>
-        <placeholder>
-            <Label text="Nenhum produto cadastrado."
-                   style="-fx-text-fill: #9CA3AF; -fx-font-size: 13px;"/>
-        </placeholder>
-    </TableView>
+    <ScrollPane VBox.vgrow="ALWAYS" fitToWidth="true" hbarPolicy="NEVER">
+        <VBox>
+            <TableView fx:id="tabela" prefHeight="280" styleClass="table-view">
+                <columns>
+                    <TableColumn fx:id="colDescricao"    text="Descrição"     prefWidth="400"/>
+                    <TableColumn fx:id="colNCM"          text="NCM"           prefWidth="140"/>
+                    <TableColumn fx:id="colFornecedores" text="Fornecedores"  prefWidth="140"/>
+                </columns>
+                <placeholder>
+                    <Label text="Nenhum produto cadastrado."
+                           style="-fx-text-fill: #9CA3AF; -fx-font-size: 13px;"/>
+                </placeholder>
+            </TableView>
 
-    <!-- Painel de detalhes -->
-    <VBox fx:id="painelDetalhes" styleClass="detalhe-painel" managed="false" visible="false">
-        <HBox alignment="CENTER_LEFT" spacing="6" styleClass="detalhe-header">
-            <FontIcon iconLiteral="mdi2i-information-outline" iconSize="14"
-                      style="-fx-fill: #6B7280;"/>
-            <Label fx:id="labelNomeDetalhe" styleClass="detalhe-titulo"/>
-            <Region HBox.hgrow="ALWAYS"/>
-            <Button text="✕" styleClass="btn-fechar" onAction="#fecharDetalhes"/>
-        </HBox>
+            <!-- Painel de detalhes DENTRO do ScrollPane -->
+            <VBox fx:id="painelDetalhes" styleClass="detalhe-painel" managed="false" visible="false">
+                <HBox alignment="CENTER_LEFT" spacing="6" styleClass="detalhe-header">
+                    <FontIcon iconLiteral="mdi2i-information-outline" iconSize="14"
+                              style="-fx-fill: #6B7280;"/>
+                    <Label fx:id="labelNomeDetalhe" styleClass="detalhe-titulo"/>
+                    <Region HBox.hgrow="ALWAYS"/>
+                    <Button text="✕" styleClass="btn-fechar" onAction="#fecharDetalhes"/>
+                </HBox>
 
-        <HBox spacing="32" style="-fx-padding: 0 0 8 0;">
-            <VBox spacing="2">
-                <Label text="NCM" style="-fx-text-fill:#9CA3AF; -fx-font-size:11px;"/>
-                <Label fx:id="dNcm" styleClass="detalhe-valor"/>
+                <HBox spacing="32" style="-fx-padding: 0 0 8 0;">
+                    <VBox spacing="2">
+                        <Label text="NCM" style="-fx-text-fill:#9CA3AF; -fx-font-size:11px;"/>
+                        <Label fx:id="dNcm" styleClass="detalhe-valor"/>
+                    </VBox>
+                    <VBox spacing="2">
+                        <Label text="Cadastrado em" style="-fx-text-fill:#9CA3AF; -fx-font-size:11px;"/>
+                        <Label fx:id="dCriadoEm" styleClass="detalhe-valor"/>
+                    </VBox>
+                </HBox>
+
+                <Label text="Fornecedores vinculados"
+                       style="-fx-text-fill:#9CA3AF; -fx-font-size:11px; -fx-padding: 4 0 4 0;"/>
+
+                <TableView fx:id="tabelaFornecedores" prefHeight="120" styleClass="table-view">
+                    <columns>
+                        <TableColumn fx:id="colFornNome"   text="Fornecedor" prefWidth="260"/>
+                        <TableColumn fx:id="colFornPeso"   text="Peso (kg)"  prefWidth="100"/>
+                        <TableColumn fx:id="colFornVrKg"   text="Vr/kg"      prefWidth="100"/>
+                        <TableColumn fx:id="colFornVrPeca" text="Vr/peça"    prefWidth="100"/>
+                        <TableColumn fx:id="colFornVrTotal" text="Vr Total"  prefWidth="110"/>
+                    </columns>
+                    <placeholder>
+                        <Label text="Nenhum fornecedor vinculado."
+                               style="-fx-text-fill: #9CA3AF; -fx-font-size: 12px;"/>
+                    </placeholder>
+                </TableView>
             </VBox>
-            <VBox spacing="2">
-                <Label text="Cadastrado em" style="-fx-text-fill:#9CA3AF; -fx-font-size:11px;"/>
-                <Label fx:id="dCriadoEm" styleClass="detalhe-valor"/>
-            </VBox>
-        </HBox>
+        </VBox>
+    </ScrollPane>
 
-        <Label text="Fornecedores vinculados"
-               style="-fx-text-fill:#9CA3AF; -fx-font-size:11px; -fx-padding: 4 0 4 0;"/>
-
-        <TableView fx:id="tabelaFornecedores" prefHeight="120" styleClass="table-view">
-            <columns>
-                <TableColumn fx:id="colFornNome"  text="Fornecedor"   prefWidth="260"/>
-                <TableColumn fx:id="colFornPeso"  text="Peso (kg)"    prefWidth="100"/>
-                <TableColumn fx:id="colFornVrKg"  text="Vr/kg"        prefWidth="100"/>
-                <TableColumn fx:id="colFornVrPeca" text="Vr/peça"     prefWidth="100"/>
-                <TableColumn fx:id="colFornVrTotal" text="Vr Total"   prefWidth="110"/>
-            </columns>
-            <placeholder>
-                <Label text="Nenhum fornecedor vinculado."
-                       style="-fx-text-fill: #9CA3AF; -fx-font-size: 12px;"/>
-            </placeholder>
-        </TableView>
-    </VBox>
-
+    <!-- Rodapé sempre visível -->
     <HBox styleClass="filter-bar" alignment="CENTER_LEFT" spacing="16"
           style="-fx-padding: 10 16 10 16;">
         <Label fx:id="labelTotal" text="Total: 0 produtos"
