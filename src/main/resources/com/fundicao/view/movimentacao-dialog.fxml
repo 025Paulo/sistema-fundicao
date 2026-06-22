@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.control.*?>
+
+<VBox xmlns="http://javafx.com/javafx/17"
+      xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="com.fundicao.controller.MovimentacaoDialogController"
+      spacing="16" style="-fx-padding: 24;">
+
+    <Label fx:id="labelTitulo" text="Nova Entrada"
+           style="-fx-font-size: 16px; -fx-font-weight: bold;"/>
+
+    <VBox spacing="6">
+        <Label text="Produto *" style="-fx-font-size: 12px; -fx-text-fill: #6B7280;"/>
+        <ComboBox fx:id="comboProduto" prefWidth="400" styleClass="combo-box"/>
+    </VBox>
+
+    <VBox spacing="6">
+        <Label text="Fornecedor / Cliente *" style="-fx-font-size: 12px; -fx-text-fill: #6B7280;"/>
+        <ComboBox fx:id="comboEntidade" prefWidth="400" styleClass="combo-box"/>
+    </VBox>
+
+    <HBox spacing="16">
+        <VBox spacing="6" HBox.hgrow="ALWAYS">
+            <Label text="Quantidade (kg) *" style="-fx-font-size: 12px; -fx-text-fill: #6B7280;"/>
+            <TextField fx:id="campoQuantidade" promptText="0,00" styleClass="text-field"/>
+        </VBox>
+        <VBox spacing="6" HBox.hgrow="ALWAYS">
+            <Label text="Data *" style="-fx-font-size: 12px; -fx-text-fill: #6B7280;"/>
+            <DatePicker fx:id="campoData" prefWidth="180" styleClass="date-picker"/>
+        </VBox>
+    </HBox>
+
+    <VBox spacing="6">
+        <Label text="Valor unitário (R$/kg)" style="-fx-font-size: 12px; -fx-text-fill: #6B7280;"/>
+        <TextField fx:id="campoValorUnitario" promptText="0,00" styleClass="text-field"/>
+    </VBox>
+
+    <VBox spacing="6">
+        <Label text="Ordem de compra" style="-fx-font-size: 12px; -fx-text-fill: #6B7280;"/>
+        <TextField fx:id="campoOrdemCompra" styleClass="text-field"/>
+    </VBox>
+
+    <VBox spacing="6">
+        <Label text="Observações" style="-fx-font-size: 12px; -fx-text-fill: #6B7280;"/>
+        <TextArea fx:id="campoObservacoes" prefHeight="70" styleClass="text-area" wrapText="true"/>
+    </VBox>
+
+    <HBox spacing="10" alignment="CENTER_RIGHT">
+        <Button text="Cancelar" styleClass="btn-secondary" onAction="#cancelar"/>
+        <Button fx:id="btnSalvar" text="Salvar Entrada" styleClass="btn-primary" onAction="#salvar"/>
+    </HBox>
+
+</VBox>

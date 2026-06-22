@@ -38,6 +38,19 @@ public class ProdutoDAO {
         return lista;
     }
 
+    public Produto buscarPorId(int id) {
+        String sql = "SELECT * FROM produtos WHERE id = ?";
+        try (Connection conn = DatabaseManager.getInstance().getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, id);
+            ResultSet rs = ps.executeQuery();
+            if (rs.next()) return mapear(rs);
+        } catch (SQLException e) {
+            throw new RuntimeException("Erro ao buscar produto: " + e.getMessage(), e);
+        }
+        return null;
+    }
+
     public int inserir(Produto p) {
         String sql = "INSERT INTO produtos (descricao, classificacao_fiscal) VALUES (?, ?)";
         try (Connection conn = DatabaseManager.getInstance().getConnection();

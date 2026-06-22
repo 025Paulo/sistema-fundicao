@@ -5,6 +5,7 @@
 
 <VBox xmlns="http://javafx.com/javafx/17"
       xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="com.fundicao.controller.EstoqueController"
       spacing="0">
 
     <VBox styleClass="module-header">
@@ -12,39 +13,80 @@
             <FontIcon iconLiteral="mdi2w-warehouse" iconSize="26" styleClass="nav-icon"/>
             <VBox>
                 <Label text="Estoque" styleClass="module-title"/>
-                <Label text="Movimentações de entrada e saída" styleClass="module-subtitle"/>
+                <Label text="Controle de movimentações e saldo por produto" styleClass="module-subtitle"/>
             </VBox>
         </HBox>
     </VBox>
 
     <HBox styleClass="filter-bar" alignment="CENTER_LEFT" spacing="10">
-        <TextField promptText="Buscar..." prefWidth="260" styleClass="text-field"/>
+        <TextField fx:id="campoBusca" promptText="Buscar por produto..."
+                   prefWidth="300" styleClass="text-field"/>
+        <ComboBox fx:id="filtroTipo" prefWidth="120"/>
         <Region HBox.hgrow="ALWAYS"/>
-        <Button text="+ Adicionar" styleClass="btn-primary"/>
+        <Button text="+ Entrada" styleClass="btn-primary" onAction="#novaEntrada"/>
+        <Button text="− Saída"   styleClass="btn-danger"  onAction="#novaSaida"/>
     </HBox>
 
     <Region prefHeight="16"/>
 
-    <TableView VBox.vgrow="ALWAYS" styleClass="table-view">
-        <columns>
-            <TableColumn text="Descrição" prefWidth="350"/>
-            <TableColumn text="Informação 1" prefWidth="180"/>
-            <TableColumn text="Informação 2" prefWidth="180"/>
-            <TableColumn text="Data" prefWidth="120"/>
-        </columns>
-        <placeholder>
-            <Label text="Nenhum registro encontrado."
-                   style="-fx-text-fill: #9CA3AF; -fx-font-size: 13px;"/>
-        </placeholder>
-    </TableView>
+    <ScrollPane VBox.vgrow="ALWAYS" fitToWidth="true" hbarPolicy="NEVER">
+        <VBox>
+            <TableView fx:id="tabela" prefHeight="280" styleClass="table-view">
+                <columns>
+                    <TableColumn fx:id="colProduto"   text="Produto"             prefWidth="360"/>
+                    <TableColumn fx:id="colSaldo"     text="Saldo (kg)"          prefWidth="130"/>
+                    <TableColumn fx:id="colUltimaMov" text="Última movimentação" prefWidth="170"/>
+                </columns>
+                <placeholder>
+                    <Label text="Nenhum produto com movimentação registrada."
+                           style="-fx-text-fill: #9CA3AF; -fx-font-size: 13px;"/>
+                </placeholder>
+            </TableView>
+
+            <VBox fx:id="painelHistorico" styleClass="detalhe-painel" managed="false" visible="false">
+                <HBox alignment="CENTER_LEFT" spacing="6" styleClass="detalhe-header">
+                    <FontIcon iconLiteral="mdi2i-information-outline" iconSize="14"
+                              style="-fx-fill: #6B7280;"/>
+                    <Label fx:id="labelNomeProduto" styleClass="detalhe-titulo"/>
+                    <Region HBox.hgrow="ALWAYS"/>
+                    <Button text="✕" styleClass="btn-fechar" onAction="#fecharHistorico"/>
+                </HBox>
+
+                <HBox spacing="32" style="-fx-padding: 0 0 8 0;">
+                    <VBox spacing="2">
+                        <Label text="Saldo atual" style="-fx-text-fill:#9CA3AF; -fx-font-size:11px;"/>
+                        <Label fx:id="labelSaldoDetalhe" styleClass="detalhe-valor"/>
+                    </VBox>
+                </HBox>
+
+                <Label text="Histórico de movimentações"
+                       style="-fx-text-fill:#9CA3AF; -fx-font-size:11px; -fx-padding: 4 0 4 0;"/>
+
+                <TableView fx:id="tabelaHistorico" prefHeight="150" styleClass="table-view">
+                    <columns>
+                        <TableColumn fx:id="colHistTipo"      text="Tipo"              prefWidth="80"/>
+                        <TableColumn fx:id="colHistQtd"       text="Qtd (kg)"          prefWidth="90"/>
+                        <TableColumn fx:id="colHistEntidade"  text="Fornecedor/Cliente" prefWidth="200"/>
+                        <TableColumn fx:id="colHistData"      text="Data"              prefWidth="100"/>
+                        <TableColumn fx:id="colHistValor"     text="Vlr Unit. (R$/kg)" prefWidth="120"/>
+                        <TableColumn fx:id="colHistOrdem"     text="Ordem de compra"   prefWidth="130"/>
+                        <TableColumn fx:id="colHistObs"       text="Observação"        prefWidth="200"/>
+                    </columns>
+                    <placeholder>
+                        <Label text="Nenhuma movimentação registrada."
+                               style="-fx-text-fill: #9CA3AF; -fx-font-size: 12px;"/>
+                    </placeholder>
+                </TableView>
+            </VBox>
+        </VBox>
+    </ScrollPane>
 
     <HBox styleClass="filter-bar" alignment="CENTER_LEFT" spacing="16"
           style="-fx-padding: 10 16 10 16;">
-        <Label text="Total: 0 registros"
+        <Label fx:id="labelTotal" text="Total: 0 produtos"
                style="-fx-font-size: 12px; -fx-text-fill: #6B7280;"/>
         <Region HBox.hgrow="ALWAYS"/>
-        <Button text="Alterar" styleClass="btn-secondary"/>
-        <Button text="Excluir" styleClass="btn-danger"/>
+        <Button text="Excluir movimentação" styleClass="btn-danger" onAction="#excluirMovimentacao"/>
     </HBox>
 
 </VBox>
