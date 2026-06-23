@@ -72,9 +72,11 @@ public class NotaFiscalController {
     private void carregar() {
         try {
             todasNotas = notaFiscalDAO.listarTodas();
+            System.out.println("Notas carregadas: " + todasNotas.size()); // ← adiciona isso
             filtrar();
         } catch (SQLException e) {
             mostrarErro("Erro ao carregar notas fiscais: " + e.getMessage());
+            e.printStackTrace();
         }
     }
 
