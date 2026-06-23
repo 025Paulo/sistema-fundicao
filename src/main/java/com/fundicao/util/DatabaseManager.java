@@ -10,9 +10,11 @@ import java.sql.Statement;
 
 public class DatabaseManager {
 
-    private static DatabaseManager instance;
+    private static volatile DatabaseManager instance;
     private static final String DB_NAME = "fundicao.db";
-    private String dbUrl;
+
+    private final String dbUrl;
+    private Connection connection; // conexão única reutilizada
 
     private DatabaseManager() {
         String appDataDir = System.getenv("LOCALAPPDATA");
@@ -30,18 +32,49 @@ public class DatabaseManager {
 
     public static DatabaseManager getInstance() {
         if (instance == null) {
-            instance = new DatabaseManager();
+            synchronized (DatabaseManager.class) {
+                if (instance == null) {
+                    instance = new DatabaseManager();
+                }
+            }
         }
         return instance;
     }
 
-    public Connection getConnection() throws SQLException {
-        return DriverManager.getConnection(dbUrl);
+    /**
+     * Retorna sempre a mesma conexão. Se estiver fechada ou nula, abre uma nova.
+     * Ideal para SQLite local com acesso single-thread (JavaFX UI thread).
+     */
+    public synchronized Connection getConnection() throws SQLException {
+        if (connection == null || connection.isClosed()) {
+            connection = DriverManager.getConnection(dbUrl);
+            // WAL mode: permite leituras simultâneas sem bloquear escritas
+            try (Statement stmt = connection.createStatement()) {
+                stmt.execute("PRAGMA journal_mode=WAL;");
+                stmt.execute("PRAGMA foreign_keys = ON;");
+                stmt.execute("PRAGMA synchronous = NORMAL;"); // mais rápido, ainda seguro
+            }
+        }
+        return connection;
+    }
+
+    /**
+     * Fecha a conexão explicitamente. Chame no encerramento da aplicação.
+     */
+    public synchronized void fechar() {
+        if (connection != null) {
+            try {
+                connection.close();
+            } catch (SQLException e) {
+                System.err.println("Erro ao fechar conexão: " + e.getMessage());
+            } finally {
+                connection = null;
+            }
+        }
     }
 
     public void inicializar() {
-        try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
-            stmt.execute("PRAGMA foreign_keys = ON;");
+        try (Statement stmt = getConnection().createStatement()) {
             criarTabelaEntidades(stmt);
             criarTabelaProdutos(stmt);
             criarTabelaProdutoFornecedor(stmt);

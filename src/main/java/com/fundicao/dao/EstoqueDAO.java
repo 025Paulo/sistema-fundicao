@@ -1,6 +1,7 @@
 package com.fundicao.dao;
 
 import com.fundicao.model.Movimentacao;
+import com.fundicao.model.SaldoEstoque;
 import com.fundicao.util.DatabaseManager;
 
 import java.sql.*;
@@ -57,34 +58,34 @@ public class EstoqueDAO {
         }
     }
 
-    public List<Object[]> getSaldoTodos() throws SQLException {
+    public List<SaldoEstoque> getSaldoTodos() throws SQLException {
         String sql = """
-            SELECT p.id, p.descricao,
-                   SUM(CASE WHEN tipo='Entrada' THEN quantidade ELSE -quantidade END) AS saldo,
-                   MAX(em.data_movimentacao) AS ultima_mov,
-                   (SELECT tipo FROM estoque_movimentacoes
-                    WHERE produto_id = p.id
-                    ORDER BY data_movimentacao DESC LIMIT 1) AS ultimo_tipo
-            FROM produtos p
-            INNER JOIN estoque_movimentacoes em ON em.produto_id = p.id
-            GROUP BY p.id, p.descricao
-            ORDER BY p.descricao
-        """;
+        SELECT p.id, p.descricao,
+               SUM(CASE WHEN tipo='Entrada' THEN quantidade ELSE -quantidade END) AS saldo,
+               MAX(em.data_movimentacao) AS ultima_mov,
+               (SELECT tipo FROM estoque_movimentacoes
+                WHERE produto_id = p.id
+                ORDER BY data_movimentacao DESC LIMIT 1) AS ultimo_tipo
+        FROM produtos p
+        INNER JOIN estoque_movimentacoes em ON em.produto_id = p.id
+        GROUP BY p.id, p.descricao
+        ORDER BY p.descricao
+    """;
 
-        List<Object[]> dados = new ArrayList<>();
+        List<SaldoEstoque> dados = new ArrayList<>();
 
         try (Connection conn = getConnection();
              PreparedStatement ps = conn.prepareStatement(sql);
              ResultSet rs = ps.executeQuery()) {
 
             while (rs.next()) {
-                dados.add(new Object[]{
+                dados.add(new SaldoEstoque(
                         rs.getInt("id"),
                         rs.getString("descricao"),
                         rs.getDouble("saldo"),
                         rs.getString("ultima_mov"),
                         rs.getString("ultimo_tipo")
-                });
+                ));
             }
         }
 

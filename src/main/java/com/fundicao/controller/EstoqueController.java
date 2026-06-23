@@ -3,6 +3,7 @@ package com.fundicao.controller;
 import com.fundicao.dao.EstoqueDAO;
 import com.fundicao.dao.ProdutoDAO;
 import com.fundicao.model.Movimentacao;
+import com.fundicao.model.SaldoEstoque;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.fxml.FXML;
@@ -21,10 +22,10 @@ public class EstoqueController {
 
     @FXML private TextField campoBusca;
     @FXML private ComboBox<String> filtroTipo;
-    @FXML private TableView<Object[]> tabela;
-    @FXML private TableColumn<Object[], String> colProduto;
-    @FXML private TableColumn<Object[], String> colSaldo;
-    @FXML private TableColumn<Object[], String> colUltimaMov;
+    @FXML private TableView<SaldoEstoque> tabela;
+    @FXML private TableColumn<SaldoEstoque, String> colProduto;
+    @FXML private TableColumn<SaldoEstoque, String> colSaldo;
+    @FXML private TableColumn<SaldoEstoque, String> colUltimaMov;
 
     @FXML private VBox painelHistorico;
     @FXML private Label labelNomeProduto;
@@ -41,7 +42,7 @@ public class EstoqueController {
     @FXML private Label labelTotal;
 
     private final EstoqueDAO estoqueDAO = new EstoqueDAO();
-    private List<Object[]> todosSaldos;
+    private List<SaldoEstoque> todosSaldos;
 
     @FXML
     public void initialize() {
@@ -53,21 +54,23 @@ public class EstoqueController {
     }
 
     private void configurarColunas() {
-        colProduto.setCellValueFactory(c -> new SimpleStringProperty((String) c.getValue()[1]));
-        colSaldo.setCellValueFactory(c -> {
-            double saldo = (double) c.getValue()[2];
-            return new SimpleStringProperty(String.format("%.2f kg", saldo));
-        });
+        colProduto.setCellValueFactory(c ->
+                new SimpleStringProperty(c.getValue().getDescricao()));
+
+        colSaldo.setCellValueFactory(c ->
+                new SimpleStringProperty(
+                        String.format("%.2f kg", c.getValue().getSaldo())));
+
         colUltimaMov.setCellValueFactory(c -> {
-            String data = (String) c.getValue()[3];
+            String data = c.getValue().getUltimaMovimentacao();
             return new SimpleStringProperty(data != null ? data : "—");
         });
 
-        // Coluna Tipo como primeira coluna (verde/vermelho)
-        TableColumn<Object[], String> colTipo = new TableColumn<>("Tipo");
+        // Coluna Tipo com cor verde/vermelho
+        TableColumn<SaldoEstoque, String> colTipo = new TableColumn<>("Tipo");
         colTipo.setPrefWidth(80);
         colTipo.setCellValueFactory(c -> {
-            String tipo = (String) c.getValue()[4];
+            String tipo = c.getValue().getUltimoTipo();
             return new SimpleStringProperty(tipo != null ? tipo : "");
         });
         colTipo.setCellFactory(col -> new TableCell<>() {
@@ -81,21 +84,14 @@ public class EstoqueController {
                         : "-fx-text-fill: #c62828; -fx-font-weight: bold;");
             }
         });
-        colHistValor.setCellValueFactory(c -> {
-            Double vr = c.getValue().getValorUnitario();
-            return new SimpleStringProperty(vr != null ? String.format("R$ %.2f", vr) : "—");
-        });
-
-        colHistOrdem.setCellValueFactory(c -> {
-            String ordem = c.getValue().getOrdemCompra();
-            return new SimpleStringProperty(ordem != null && !ordem.isBlank() ? ordem : "—");
-        });
         tabela.getColumns().add(0, colTipo);
 
-        // Histórico
-        colHistTipo.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getTipo()));
+        // Colunas do histórico
+        colHistTipo.setCellValueFactory(c ->
+                new SimpleStringProperty(c.getValue().getTipo()));
         colHistQtd.setCellValueFactory(c ->
-                new SimpleStringProperty(String.format("%.2f kg", c.getValue().getQuantidade())));
+                new SimpleStringProperty(
+                        String.format("%.2f kg", c.getValue().getQuantidade())));
         colHistEntidade.setCellValueFactory(c -> {
             String nome = c.getValue().getEntidadeNome();
             return new SimpleStringProperty(nome != null ? nome : "—");
@@ -107,6 +103,15 @@ public class EstoqueController {
         colHistObs.setCellValueFactory(c -> {
             String obs = c.getValue().getObservacoes();
             return new SimpleStringProperty(obs != null ? obs : "");
+        });
+        colHistValor.setCellValueFactory(c -> {
+            Double vr = c.getValue().getValorUnitario();
+            return new SimpleStringProperty(vr != null ? String.format("R$ %.2f", vr) : "—");
+        });
+        colHistOrdem.setCellValueFactory(c -> {
+            String ordem = c.getValue().getOrdemCompra();
+            return new SimpleStringProperty(
+                    ordem != null && !ordem.isBlank() ? ordem : "—");
         });
     }
 
@@ -121,9 +126,10 @@ public class EstoqueController {
     }
 
     private void configurarSelecao() {
-        tabela.getSelectionModel().selectedItemProperty().addListener((obs, old, novo) -> {
-            if (novo != null) mostrarHistorico(novo);
-        });
+        tabela.getSelectionModel().selectedItemProperty()
+                .addListener((obs, old, novo) -> {
+                    if (novo != null) mostrarHistorico(novo);
+                });
     }
 
     private void carregar() {
@@ -139,11 +145,11 @@ public class EstoqueController {
         String lower = texto == null ? "" : texto.toLowerCase();
         String tipo = filtroTipo != null ? filtroTipo.getValue() : "Todos";
 
-        List<Object[]> filtrado = todosSaldos.stream()
+        List<SaldoEstoque> filtrado = todosSaldos.stream()
                 .filter(row -> {
-                    boolean matchTexto = ((String) row[1]).toLowerCase().contains(lower);
+                    boolean matchTexto = row.getDescricao().toLowerCase().contains(lower);
                     boolean matchTipo = "Todos".equals(tipo)
-                            || tipo.equals(row[4]);
+                            || tipo.equals(row.getUltimoTipo());
                     return matchTexto && matchTipo;
                 })
                 .toList();
@@ -152,24 +158,21 @@ public class EstoqueController {
         atualizarRodape(filtrado);
     }
 
-    private void atualizarRodape(List<Object[]> dados) {
+    private void atualizarRodape(List<SaldoEstoque> dados) {
         double totalKg = dados.stream()
-                .mapToDouble(row -> (double) row[2])
+                .mapToDouble(SaldoEstoque::getSaldo)
                 .sum();
         labelTotal.setText(String.format(
-                "Total: %d produto(s)   |   Saldo total: %.2f kg", dados.size(), totalKg));
+                "Total: %d produto(s)   |   Saldo total: %.2f kg",
+                dados.size(), totalKg));
     }
 
-    private void mostrarHistorico(Object[] row) {
+    private void mostrarHistorico(SaldoEstoque row) {
         try {
-            int produtoId = (int) row[0];
-            String nome = (String) row[1];
-            double saldo = (double) row[2];
+            labelNomeProduto.setText(row.getDescricao());
+            labelSaldoDetalhe.setText(String.format("%.2f kg", row.getSaldo()));
 
-            labelNomeProduto.setText(nome);
-            labelSaldoDetalhe.setText(String.format("%.2f kg", saldo));
-
-            List<Movimentacao> historico = estoqueDAO.getHistorico(produtoId);
+            List<Movimentacao> historico = estoqueDAO.getHistorico(row.getProdutoId());
             tabelaHistorico.setItems(FXCollections.observableArrayList(historico));
 
             painelHistorico.setVisible(true);
@@ -204,9 +207,9 @@ public class EstoqueController {
             MovimentacaoDialogController ctrl = loader.getController();
             ctrl.setTipo(tipo);
 
-            Object[] selecionado = tabela.getSelectionModel().getSelectedItem();
+            SaldoEstoque selecionado = tabela.getSelectionModel().getSelectedItem();
             if (selecionado != null) {
-                var produto = new ProdutoDAO().buscarPorId((int) selecionado[0]);
+                var produto = new ProdutoDAO().buscarPorId(selecionado.getProdutoId());
                 if (produto != null) ctrl.setProduto(produto);
             }
 
@@ -228,13 +231,14 @@ public class EstoqueController {
             return;
         }
         Alert confirm = new Alert(Alert.AlertType.CONFIRMATION,
-                "Excluir esta movimentação? O saldo será recalculado.", ButtonType.YES, ButtonType.NO);
+                "Excluir esta movimentação? O saldo será recalculado.",
+                ButtonType.YES, ButtonType.NO);
         confirm.showAndWait().ifPresent(btn -> {
             if (btn == ButtonType.YES) {
                 try {
                     estoqueDAO.excluir(selecionada.getId());
                     carregar();
-                    Object[] row = tabela.getSelectionModel().getSelectedItem();
+                    SaldoEstoque row = tabela.getSelectionModel().getSelectedItem();
                     if (row != null) mostrarHistorico(row);
                 } catch (SQLException e) {
                     mostrarErro("Erro ao excluir: " + e.getMessage());
