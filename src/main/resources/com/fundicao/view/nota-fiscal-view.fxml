@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.control.*?>
+
+<VBox xmlns="http://javafx.com/javafx/17"
+      xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="com.fundicao.controller.NotaFiscalController"
+      spacing="16" styleClass="page-container">
+
+    <HBox spacing="12" alignment="CENTER_LEFT">
+        <Label text="Controle de Notas Fiscais" styleClass="page-title"/>
+        <Region HBox.hgrow="ALWAYS"/>
+        <Button text="Nova Nota" onAction="#novaNota" styleClass="btn-primary"/>
+        <Button text="Alterar" onAction="#alterarNota" styleClass="btn-secondary"/>
+        <Button text="Excluir" onAction="#excluirNota" styleClass="btn-danger"/>
+    </HBox>
+
+    <HBox spacing="12">
+        <TextField fx:id="campoBusca" promptText="Buscar por número ou entidade..." HBox.hgrow="ALWAYS"/>
+        <ComboBox fx:id="filtroNatureza" prefWidth="180"/>
+    </HBox>
+
+    <TableView fx:id="tabela" VBox.vgrow="ALWAYS">
+        <columns>
+            <TableColumn fx:id="colNumero" text="Número" prefWidth="120"/>
+            <TableColumn fx:id="colNatureza" text="Natureza" prefWidth="120"/>
+            <TableColumn fx:id="colData" text="Data" prefWidth="110"/>
+            <TableColumn fx:id="colEntidade" text="Fornecedor / Cliente" prefWidth="240"/>
+            <TableColumn fx:id="colPesoLiquido" text="Peso Líquido" prefWidth="120"/>
+            <TableColumn fx:id="colTransportadora" text="Transportadora" prefWidth="180"/>
+        </columns>
+        <placeholder>
+            <Label text="Nenhuma nota fiscal cadastrada."/>
+        </placeholder>
+    </TableView>
+
+    <HBox alignment="CENTER_LEFT">
+        <Label fx:id="labelTotal" text="Total: 0 nota(s)"/>
+    </HBox>
+
+</VBox>
