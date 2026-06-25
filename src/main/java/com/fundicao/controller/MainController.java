@@ -23,9 +23,10 @@ public class MainController {
     }
 
     @FXML private void abrirEstoque()   { carregarTela("estoque");   setActive(btnEstoque);   }
-    @FXML private void abrirNotas()     { carregarTela("notas");     setActive(btnNotas);     }
+    @FXML private void abrirNotas() { carregarTela("nota-fiscal"); setActive(btnNotas); }
     @FXML private void abrirProdutos()  { carregarTela("produtos");  setActive(btnProdutos);  }
     @FXML private void abrirEntidades() { carregarTela("entidades"); setActive(btnEntidades); }
+
 
     private void carregarTela(String nome) {
         try {
@@ -36,6 +37,7 @@ public class MainController {
             contentArea.getChildren().add(loader.load());
         } catch (IOException e) {
             System.err.println("Erro ao carregar tela: " + nome + " — " + e.getMessage());
+            e.printStackTrace();
         }
     }
 
