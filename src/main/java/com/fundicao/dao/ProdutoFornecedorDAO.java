@@ -13,7 +13,7 @@ public class ProdutoFornecedorDAO {
         return DatabaseManager.getInstance().getConnection();
     }
 
-    public List<ProdutoFornecedor> listarPorProduto(int produtoId) {
+    public List<ProdutoFornecedor> listarPorProduto(int produtoId) throws SQLException {
         List<ProdutoFornecedor> lista = new ArrayList<>();
         String sql = """
             SELECT pf.*, e.razao_social as fornecedor_nome
@@ -26,13 +26,11 @@ public class ProdutoFornecedorDAO {
             ps.setInt(1, produtoId);
             ResultSet rs = ps.executeQuery();
             while (rs.next()) lista.add(mapear(rs));
-        } catch (SQLException e) {
-            throw new RuntimeException("Erro ao listar fornecedores do produto: " + e.getMessage(), e);
         }
         return lista;
     }
 
-    public void salvar(ProdutoFornecedor pf) {
+    public void salvar(ProdutoFornecedor pf) throws SQLException {
         String sql = """
             INSERT INTO produto_fornecedor (produto_id, fornecedor_id, peso_kg, vr_kg, vr_peca, vr_total)
             VALUES (?, ?, ?, ?, ?, ?)
@@ -50,18 +48,14 @@ public class ProdutoFornecedorDAO {
             setDoubleOrNull(ps, 5, pf.getVrPeca());
             setDoubleOrNull(ps, 6, pf.getVrTotal());
             ps.executeUpdate();
-        } catch (SQLException e) {
-            throw new RuntimeException("Erro ao salvar vínculo produto-fornecedor: " + e.getMessage(), e);
         }
     }
 
-    public void excluir(int id) {
+    public void excluir(int id) throws SQLException {
         String sql = "DELETE FROM produto_fornecedor WHERE id=?";
         try (PreparedStatement ps = getConnection().prepareStatement(sql)) {
             ps.setInt(1, id);
             ps.executeUpdate();
-        } catch (SQLException e) {
-            throw new RuntimeException("Erro ao excluir vínculo: " + e.getMessage(), e);
         }
     }
 

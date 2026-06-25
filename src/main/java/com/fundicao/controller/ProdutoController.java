@@ -17,6 +17,7 @@ import javafx.scene.layout.VBox;
 import javafx.util.Duration;
 
 import java.io.IOException;
+import java.sql.SQLException;
 import java.util.List;
 import java.util.Optional;
 
@@ -29,7 +30,6 @@ public class ProdutoController {
     @FXML private TableColumn<Produto, String> colFornecedores;
     @FXML private Label labelTotal;
 
-    // Painel detalhes
     @FXML private VBox painelDetalhes;
     @FXML private Label labelNomeDetalhe;
     @FXML private Label dNcm;
@@ -53,8 +53,12 @@ public class ProdutoController {
         colNCM.setCellValueFactory(c ->
                 new SimpleStringProperty(nvl(c.getValue().getClassificacaoFiscal())));
         colFornecedores.setCellValueFactory(c -> {
-            List<ProdutoFornecedor> forn = pfDao.listarPorProduto(c.getValue().getId());
-            return new SimpleStringProperty(forn.size() + " fornecedor(es)");
+            try {
+                List<ProdutoFornecedor> forn = pfDao.listarPorProduto(c.getValue().getId());
+                return new SimpleStringProperty(forn.size() + " fornecedor(es)");
+            } catch (SQLException e) {
+                return new SimpleStringProperty("erro");
+            }
         });
 
         colFornNome.setCellValueFactory(c ->
@@ -81,36 +85,48 @@ public class ProdutoController {
     }
 
     private void carregarDados() {
-        List<Produto> lista = dao.listarTodos();
-        dados.setAll(lista);
-        labelTotal.setText("Total: " + lista.size() + " produtos");
+        try {
+            List<Produto> lista = dao.listarTodos();
+            dados.setAll(lista);
+            labelTotal.setText("Total: " + lista.size() + " produtos");
+        } catch (SQLException e) {
+            mostrarErro("Erro ao carregar produtos: " + e.getMessage());
+        }
     }
 
     private void filtrar(String termo) {
-        List<Produto> lista = (termo == null || termo.isBlank())
-                ? dao.listarTodos()
-                : dao.buscar(termo.trim());
-        dados.setAll(lista);
-        labelTotal.setText("Total: " + lista.size() + " produtos");
+        try {
+            List<Produto> lista = (termo == null || termo.isBlank())
+                    ? dao.listarTodos()
+                    : dao.buscar(termo.trim());
+            dados.setAll(lista);
+            labelTotal.setText("Total: " + lista.size() + " produtos");
+        } catch (SQLException e) {
+            mostrarErro("Erro ao filtrar produtos: " + e.getMessage());
+        }
     }
 
     private void mostrarDetalhes(Produto p) {
-        labelNomeDetalhe.setText(p.getDescricao());
-        dNcm.setText(nvl(p.getClassificacaoFiscal()));
-        dCriadoEm.setText(nvl(p.getCriadoEm()));
+        try {
+            labelNomeDetalhe.setText(p.getDescricao());
+            dNcm.setText(nvl(p.getClassificacaoFiscal()));
+            dCriadoEm.setText(nvl(p.getCriadoEm()));
 
-        List<ProdutoFornecedor> forn = pfDao.listarPorProduto(p.getId());
-        dadosFornecedores.setAll(forn);
+            List<ProdutoFornecedor> forn = pfDao.listarPorProduto(p.getId());
+            dadosFornecedores.setAll(forn);
 
-        if (!painelDetalhes.isVisible()) {
-            painelDetalhes.setVisible(true);
-            painelDetalhes.setManaged(true);
-            painelDetalhes.setOpacity(0);
-            painelDetalhes.setScaleY(0.92);
-            new Timeline(new KeyFrame(Duration.millis(180),
-                    new KeyValue(painelDetalhes.opacityProperty(), 1),
-                    new KeyValue(painelDetalhes.scaleYProperty(), 1)
-            )).play();
+            if (!painelDetalhes.isVisible()) {
+                painelDetalhes.setVisible(true);
+                painelDetalhes.setManaged(true);
+                painelDetalhes.setOpacity(0);
+                painelDetalhes.setScaleY(0.92);
+                new Timeline(new KeyFrame(Duration.millis(180),
+                        new KeyValue(painelDetalhes.opacityProperty(), 1),
+                        new KeyValue(painelDetalhes.scaleYProperty(), 1)
+                )).play();
+            }
+        } catch (SQLException e) {
+            mostrarErro("Erro ao carregar detalhes: " + e.getMessage());
         }
     }
 
@@ -149,9 +165,13 @@ public class ProdutoController {
         confirm.setContentText("Excluir \"" + s.getDescricao() + "\"?");
         Optional<ButtonType> res = confirm.showAndWait();
         if (res.isPresent() && res.get() == ButtonType.OK) {
-            dao.excluir(s.getId());
-            fecharDetalhes();
-            carregarDados();
+            try {
+                dao.excluir(s.getId());
+                fecharDetalhes();
+                carregarDados();
+            } catch (SQLException e) {
+                mostrarErro("Erro ao excluir produto: " + e.getMessage());
+            }
         }
     }
 
@@ -180,7 +200,6 @@ public class ProdutoController {
                     dao.atualizar(novo);
                     id = novo.getId();
                 }
-                // salva vínculos com fornecedores
                 for (ProdutoFornecedor pf : ctrl.getFornecedores()) {
                     pf.setProdutoId(id);
                     pfDao.salvar(pf);
@@ -188,15 +207,26 @@ public class ProdutoController {
                 carregarDados();
             }
         } catch (IOException e) {
-            throw new RuntimeException("Erro ao abrir dialog: " + e.getMessage(), e);
+            mostrarErro("Erro ao abrir formulário: " + e.getMessage());
+        } catch (SQLException e) {
+            mostrarErro("Erro ao salvar produto: " + e.getMessage());
         }
     }
 
     private String nvl(String s) { return (s == null || s.isBlank()) ? "—" : s; }
     private String formatDouble(Double v) { return v != null ? String.format("%.2f kg", v) : "—"; }
     private String formatMoeda(Double v) { return v != null ? String.format("R$ %.2f", v) : "—"; }
+
     private void mostrarAviso(String msg) {
         Alert a = new Alert(Alert.AlertType.WARNING);
         a.setHeaderText(null); a.setContentText(msg); a.showAndWait();
+    }
+
+    private void mostrarErro(String msg) {
+        Alert a = new Alert(Alert.AlertType.ERROR);
+        a.setTitle("Erro");
+        a.setHeaderText(null);
+        a.setContentText(msg);
+        a.showAndWait();
     }
 }

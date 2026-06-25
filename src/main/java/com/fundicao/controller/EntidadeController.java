@@ -14,6 +14,7 @@ import javafx.scene.layout.VBox;
 import javafx.util.Duration;
 
 import java.io.IOException;
+import java.sql.SQLException;
 import java.util.List;
 import java.util.Optional;
 
@@ -28,7 +29,6 @@ public class EntidadeController {
     @FXML private TableColumn<Entidade, String> colSituacao;
     @FXML private Label labelTotal;
 
-    // Painel de detalhes
     @FXML private VBox painelDetalhes;
     @FXML private Label labelNomeDetalhe;
     @FXML private Label dTelefone;
@@ -60,7 +60,6 @@ public class EntidadeController {
 
         campoBusca.textProperty().addListener((obs, antigo, novo) -> filtrar(novo));
 
-        // Abre painel ao selecionar linha
         tabela.getSelectionModel().selectedItemProperty().addListener((obs, antigo, novo) -> {
             if (novo != null) mostrarDetalhes(novo);
             else fecharDetalhes();
@@ -68,18 +67,24 @@ public class EntidadeController {
     }
 
     private void carregarDados() {
-        List<Entidade> lista = dao.listarTodos();
-        dados.setAll(lista);
-        labelTotal.setText("Total: " + lista.size() + " registros");
+        try {
+            List<Entidade> lista = dao.listarTodos();
+            dados.setAll(lista);
+            labelTotal.setText("Total: " + lista.size() + " registros");
+        } catch (SQLException e) {
+            mostrarErro("Erro ao carregar entidades: " + e.getMessage());
+        }
     }
 
     private void filtrar(String termo) {
-        if (termo == null || termo.isBlank()) {
-            carregarDados();
-        } else {
-            List<Entidade> lista = dao.buscar(termo.trim());
+        try {
+            List<Entidade> lista = (termo == null || termo.isBlank())
+                    ? dao.listarTodos()
+                    : dao.buscar(termo.trim());
             dados.setAll(lista);
             labelTotal.setText("Total: " + lista.size() + " registros");
+        } catch (SQLException e) {
+            mostrarErro("Erro ao filtrar entidades: " + e.getMessage());
         }
     }
 
@@ -170,9 +175,13 @@ public class EntidadeController {
 
         Optional<ButtonType> resultado = confirm.showAndWait();
         if (resultado.isPresent() && resultado.get() == ButtonType.OK) {
-            dao.excluir(selecionada.getId());
-            fecharDetalhes();
-            carregarDados();
+            try {
+                dao.excluir(selecionada.getId());
+                fecharDetalhes();
+                carregarDados();
+            } catch (SQLException e) {
+                mostrarErro("Erro ao excluir entidade: " + e.getMessage());
+            }
         }
     }
 
@@ -202,12 +211,22 @@ public class EntidadeController {
                 carregarDados();
             }
         } catch (IOException e) {
-            throw new RuntimeException("Erro ao abrir dialog: " + e.getMessage(), e);
+            mostrarErro("Erro ao abrir formulário: " + e.getMessage());
+        } catch (SQLException e) {
+            mostrarErro("Erro ao salvar entidade: " + e.getMessage());
         }
     }
 
     private void mostrarAviso(String msg) {
         Alert alert = new Alert(Alert.AlertType.WARNING);
+        alert.setHeaderText(null);
+        alert.setContentText(msg);
+        alert.showAndWait();
+    }
+
+    private void mostrarErro(String msg) {
+        Alert alert = new Alert(Alert.AlertType.ERROR);
+        alert.setTitle("Erro");
         alert.setHeaderText(null);
         alert.setContentText(msg);
         alert.showAndWait();

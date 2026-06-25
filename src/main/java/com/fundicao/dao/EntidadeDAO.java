@@ -13,19 +13,17 @@ public class EntidadeDAO {
         return DatabaseManager.getInstance().getConnection();
     }
 
-    public List<Entidade> listarTodos() {
+    public List<Entidade> listarTodos() throws SQLException {
         List<Entidade> lista = new ArrayList<>();
         String sql = "SELECT * FROM entidades ORDER BY razao_social";
         try (PreparedStatement ps = getConnection().prepareStatement(sql);
              ResultSet rs = ps.executeQuery()) {
             while (rs.next()) lista.add(mapear(rs));
-        } catch (SQLException e) {
-            throw new RuntimeException("Erro ao listar entidades: " + e.getMessage(), e);
         }
         return lista;
     }
 
-    public List<Entidade> buscar(String termo) {
+    public List<Entidade> buscar(String termo) throws SQLException {
         List<Entidade> lista = new ArrayList<>();
         String sql = """
             SELECT * FROM entidades
@@ -39,13 +37,11 @@ public class EntidadeDAO {
             ps.setString(3, like);
             ResultSet rs = ps.executeQuery();
             while (rs.next()) lista.add(mapear(rs));
-        } catch (SQLException e) {
-            throw new RuntimeException("Erro ao buscar entidades: " + e.getMessage(), e);
         }
         return lista;
     }
 
-    public void inserir(Entidade e) {
+    public void inserir(Entidade e) throws SQLException {
         String sql = """
             INSERT INTO entidades (razao_social, tipo, tipo_pessoa, cnpj_cpf,
                 inscricao_estadual, site, telefone, fax, email,
@@ -55,12 +51,10 @@ public class EntidadeDAO {
         try (PreparedStatement ps = getConnection().prepareStatement(sql)) {
             preencherStatement(ps, e);
             ps.executeUpdate();
-        } catch (SQLException ex) {
-            throw new RuntimeException("Erro ao inserir entidade: " + ex.getMessage(), ex);
         }
     }
 
-    public void atualizar(Entidade e) {
+    public void atualizar(Entidade e) throws SQLException {
         String sql = """
             UPDATE entidades SET razao_social=?, tipo=?, tipo_pessoa=?, cnpj_cpf=?,
                 inscricao_estadual=?, site=?, telefone=?, fax=?, email=?,
@@ -71,18 +65,14 @@ public class EntidadeDAO {
             preencherStatement(ps, e);
             ps.setInt(18, e.getId());
             ps.executeUpdate();
-        } catch (SQLException ex) {
-            throw new RuntimeException("Erro ao atualizar entidade: " + ex.getMessage(), ex);
         }
     }
 
-    public void excluir(int id) {
+    public void excluir(int id) throws SQLException {
         String sql = "DELETE FROM entidades WHERE id=?";
         try (PreparedStatement ps = getConnection().prepareStatement(sql)) {
             ps.setInt(1, id);
             ps.executeUpdate();
-        } catch (SQLException e) {
-            throw new RuntimeException("Erro ao excluir entidade: " + e.getMessage(), e);
         }
     }
 
