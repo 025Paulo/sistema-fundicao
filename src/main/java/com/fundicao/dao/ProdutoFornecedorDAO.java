@@ -9,6 +9,10 @@ import java.util.List;
 
 public class ProdutoFornecedorDAO {
 
+    private Connection getConnection() throws SQLException {
+        return DatabaseManager.getInstance().getConnection();
+    }
+
     public List<ProdutoFornecedor> listarPorProduto(int produtoId) {
         List<ProdutoFornecedor> lista = new ArrayList<>();
         String sql = """
@@ -18,8 +22,7 @@ public class ProdutoFornecedorDAO {
             WHERE pf.produto_id = ?
             ORDER BY e.razao_social
         """;
-        try (Connection conn = DatabaseManager.getInstance().getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+        try (PreparedStatement ps = getConnection().prepareStatement(sql)) {
             ps.setInt(1, produtoId);
             ResultSet rs = ps.executeQuery();
             while (rs.next()) lista.add(mapear(rs));
@@ -39,8 +42,7 @@ public class ProdutoFornecedorDAO {
                 vr_peca  = excluded.vr_peca,
                 vr_total = excluded.vr_total
         """;
-        try (Connection conn = DatabaseManager.getInstance().getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+        try (PreparedStatement ps = getConnection().prepareStatement(sql)) {
             ps.setInt(1, pf.getProdutoId());
             ps.setInt(2, pf.getFornecedorId());
             setDoubleOrNull(ps, 3, pf.getPesoKg());
@@ -55,8 +57,7 @@ public class ProdutoFornecedorDAO {
 
     public void excluir(int id) {
         String sql = "DELETE FROM produto_fornecedor WHERE id=?";
-        try (Connection conn = DatabaseManager.getInstance().getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+        try (PreparedStatement ps = getConnection().prepareStatement(sql)) {
             ps.setInt(1, id);
             ps.executeUpdate();
         } catch (SQLException e) {

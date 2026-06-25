@@ -9,11 +9,14 @@ import java.util.List;
 
 public class ProdutoDAO {
 
+    private Connection getConnection() throws SQLException {
+        return DatabaseManager.getInstance().getConnection();
+    }
+
     public List<Produto> listarTodos() {
         List<Produto> lista = new ArrayList<>();
         String sql = "SELECT * FROM produtos ORDER BY descricao";
-        try (Connection conn = DatabaseManager.getInstance().getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql);
+        try (PreparedStatement ps = getConnection().prepareStatement(sql);
              ResultSet rs = ps.executeQuery()) {
             while (rs.next()) lista.add(mapear(rs));
         } catch (SQLException e) {
@@ -25,8 +28,7 @@ public class ProdutoDAO {
     public List<Produto> buscar(String termo) {
         List<Produto> lista = new ArrayList<>();
         String sql = "SELECT * FROM produtos WHERE descricao LIKE ? OR classificacao_fiscal LIKE ? ORDER BY descricao";
-        try (Connection conn = DatabaseManager.getInstance().getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+        try (PreparedStatement ps = getConnection().prepareStatement(sql)) {
             String like = "%" + termo + "%";
             ps.setString(1, like);
             ps.setString(2, like);
@@ -40,8 +42,7 @@ public class ProdutoDAO {
 
     public Produto buscarPorId(int id) {
         String sql = "SELECT * FROM produtos WHERE id = ?";
-        try (Connection conn = DatabaseManager.getInstance().getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+        try (PreparedStatement ps = getConnection().prepareStatement(sql)) {
             ps.setInt(1, id);
             ResultSet rs = ps.executeQuery();
             if (rs.next()) return mapear(rs);
@@ -53,8 +54,7 @@ public class ProdutoDAO {
 
     public int inserir(Produto p) {
         String sql = "INSERT INTO produtos (descricao, classificacao_fiscal) VALUES (?, ?)";
-        try (Connection conn = DatabaseManager.getInstance().getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+        try (PreparedStatement ps = getConnection().prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             ps.setString(1, p.getDescricao());
             ps.setString(2, p.getClassificacaoFiscal());
             ps.executeUpdate();
@@ -68,8 +68,7 @@ public class ProdutoDAO {
 
     public void atualizar(Produto p) {
         String sql = "UPDATE produtos SET descricao=?, classificacao_fiscal=? WHERE id=?";
-        try (Connection conn = DatabaseManager.getInstance().getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+        try (PreparedStatement ps = getConnection().prepareStatement(sql)) {
             ps.setString(1, p.getDescricao());
             ps.setString(2, p.getClassificacaoFiscal());
             ps.setInt(3, p.getId());
@@ -81,8 +80,7 @@ public class ProdutoDAO {
 
     public void excluir(int id) {
         String sql = "DELETE FROM produtos WHERE id=?";
-        try (Connection conn = DatabaseManager.getInstance().getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+        try (PreparedStatement ps = getConnection().prepareStatement(sql)) {
             ps.setInt(1, id);
             ps.executeUpdate();
         } catch (SQLException e) {

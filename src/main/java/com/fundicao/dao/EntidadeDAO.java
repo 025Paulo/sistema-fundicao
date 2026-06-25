@@ -9,11 +9,14 @@ import java.util.List;
 
 public class EntidadeDAO {
 
+    private Connection getConnection() throws SQLException {
+        return DatabaseManager.getInstance().getConnection();
+    }
+
     public List<Entidade> listarTodos() {
         List<Entidade> lista = new ArrayList<>();
         String sql = "SELECT * FROM entidades ORDER BY razao_social";
-        try (Connection conn = DatabaseManager.getInstance().getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql);
+        try (PreparedStatement ps = getConnection().prepareStatement(sql);
              ResultSet rs = ps.executeQuery()) {
             while (rs.next()) lista.add(mapear(rs));
         } catch (SQLException e) {
@@ -29,8 +32,7 @@ public class EntidadeDAO {
             WHERE razao_social LIKE ? OR cnpj_cpf LIKE ? OR email LIKE ?
             ORDER BY razao_social
         """;
-        try (Connection conn = DatabaseManager.getInstance().getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+        try (PreparedStatement ps = getConnection().prepareStatement(sql)) {
             String like = "%" + termo + "%";
             ps.setString(1, like);
             ps.setString(2, like);
@@ -50,8 +52,7 @@ public class EntidadeDAO {
                 rua, numero, complemento, bairro, cidade, uf, cep, situacao)
             VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
         """;
-        try (Connection conn = DatabaseManager.getInstance().getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+        try (PreparedStatement ps = getConnection().prepareStatement(sql)) {
             preencherStatement(ps, e);
             ps.executeUpdate();
         } catch (SQLException ex) {
@@ -66,8 +67,7 @@ public class EntidadeDAO {
                 rua=?, numero=?, complemento=?, bairro=?, cidade=?, uf=?, cep=?, situacao=?
             WHERE id=?
         """;
-        try (Connection conn = DatabaseManager.getInstance().getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+        try (PreparedStatement ps = getConnection().prepareStatement(sql)) {
             preencherStatement(ps, e);
             ps.setInt(18, e.getId());
             ps.executeUpdate();
@@ -78,8 +78,7 @@ public class EntidadeDAO {
 
     public void excluir(int id) {
         String sql = "DELETE FROM entidades WHERE id=?";
-        try (Connection conn = DatabaseManager.getInstance().getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+        try (PreparedStatement ps = getConnection().prepareStatement(sql)) {
             ps.setInt(1, id);
             ps.executeUpdate();
         } catch (SQLException e) {
