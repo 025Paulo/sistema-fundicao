@@ -24,9 +24,7 @@ public class EstoqueDAO {
                  transportadora, ordem_compra, observacoes)
             VALUES (?,?,?,?,?,?,?,?,?,?)
         """;
-        try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
-
+        try (PreparedStatement ps = getConnection().prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             ps.setInt(1, m.getProdutoId());
             ps.setString(2, m.getTipo());
             ps.setDouble(3, m.getQuantidade());
@@ -50,8 +48,7 @@ public class EstoqueDAO {
                 SUM(CASE WHEN tipo='Entrada' THEN quantidade ELSE -quantidade END), 0
             ) FROM estoque_movimentacoes WHERE produto_id = ?
         """;
-        try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+        try (PreparedStatement ps = getConnection().prepareStatement(sql)) {
             ps.setInt(1, produtoId);
             ResultSet rs = ps.executeQuery();
             return rs.next() ? rs.getDouble(1) : 0.0;
@@ -60,24 +57,20 @@ public class EstoqueDAO {
 
     public List<SaldoEstoque> getSaldoTodos() throws SQLException {
         String sql = """
-        SELECT p.id, p.descricao,
-               SUM(CASE WHEN tipo='Entrada' THEN quantidade ELSE -quantidade END) AS saldo,
-               MAX(em.data_movimentacao) AS ultima_mov,
-               (SELECT tipo FROM estoque_movimentacoes
-                WHERE produto_id = p.id
-                ORDER BY data_movimentacao DESC LIMIT 1) AS ultimo_tipo
-        FROM produtos p
-        INNER JOIN estoque_movimentacoes em ON em.produto_id = p.id
-        GROUP BY p.id, p.descricao
-        ORDER BY p.descricao
-    """;
-
+            SELECT p.id, p.descricao,
+                   SUM(CASE WHEN em.tipo='Entrada' THEN em.quantidade ELSE -em.quantidade END) AS saldo,
+                   MAX(em.data_movimentacao) AS ultima_mov,
+                   (SELECT tipo FROM estoque_movimentacoes
+                    WHERE produto_id = p.id
+                    ORDER BY data_movimentacao DESC LIMIT 1) AS ultimo_tipo
+            FROM produtos p
+            INNER JOIN estoque_movimentacoes em ON em.produto_id = p.id
+            GROUP BY p.id, p.descricao
+            ORDER BY p.descricao
+        """;
         List<SaldoEstoque> dados = new ArrayList<>();
-
-        try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql);
+        try (PreparedStatement ps = getConnection().prepareStatement(sql);
              ResultSet rs = ps.executeQuery()) {
-
             while (rs.next()) {
                 dados.add(new SaldoEstoque(
                         rs.getInt("id"),
@@ -88,7 +81,6 @@ public class EstoqueDAO {
                 ));
             }
         }
-
         return dados;
     }
 
@@ -101,8 +93,7 @@ public class EstoqueDAO {
             ORDER BY em.data_movimentacao DESC, em.id DESC
         """;
         List<Movimentacao> lista = new ArrayList<>();
-        try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+        try (PreparedStatement ps = getConnection().prepareStatement(sql)) {
             ps.setInt(1, produtoId);
             ResultSet rs = ps.executeQuery();
             while (rs.next()) {
@@ -113,9 +104,8 @@ public class EstoqueDAO {
     }
 
     public void excluir(int id) throws SQLException {
-        try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(
-                     "DELETE FROM estoque_movimentacoes WHERE id = ?")) {
+        try (PreparedStatement ps = getConnection().prepareStatement(
+                "DELETE FROM estoque_movimentacoes WHERE id = ?")) {
             ps.setInt(1, id);
             ps.executeUpdate();
         }

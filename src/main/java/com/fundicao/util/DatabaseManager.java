@@ -13,8 +13,9 @@ public class DatabaseManager {
     private static volatile DatabaseManager instance;
     private static final String DB_NAME = "fundicao.db";
 
+
     private final String dbUrl;
-    private Connection connection; // conexão única reutilizada
+    private Connection connection;
 
     private DatabaseManager() {
         String appDataDir = System.getenv("LOCALAPPDATA");
@@ -52,7 +53,7 @@ public class DatabaseManager {
             try (Statement stmt = connection.createStatement()) {
                 stmt.execute("PRAGMA journal_mode=WAL;");
                 stmt.execute("PRAGMA foreign_keys = ON;");
-                stmt.execute("PRAGMA synchronous = NORMAL;"); // mais rápido, ainda seguro
+                stmt.execute("PRAGMA synchronous = NORMAL;");
             }
         }
         return connection;
