@@ -1,7 +1,7 @@
 package com.fundicao.controller;
 
-import com.fundicao.dao.NotaFiscalDAO;
 import com.fundicao.model.NotaFiscal;
+import com.fundicao.service.NotaFiscalService;
 import javafx.animation.KeyFrame;
 import javafx.animation.KeyValue;
 import javafx.animation.Timeline;
@@ -34,7 +34,6 @@ public class NotaFiscalController {
     @FXML private TableColumn<NotaFiscal, String> colTransportadora;
     @FXML private Label labelTotal;
 
-    // Painel de detalhes
     @FXML private VBox painelDetalhes;
     @FXML private Label labelTituloDetalhe;
     @FXML private Label dData;
@@ -46,7 +45,7 @@ public class NotaFiscalController {
     @FXML private Label dDescontoRs;
     @FXML private Label dEntidade;
 
-    private final NotaFiscalDAO notaFiscalDAO = new NotaFiscalDAO();
+    private final NotaFiscalService service = new NotaFiscalService();
     private List<NotaFiscal> todasNotas = new ArrayList<>();
 
     @FXML
@@ -90,11 +89,10 @@ public class NotaFiscalController {
 
     private void carregar() {
         try {
-            todasNotas = notaFiscalDAO.listarTodas();
+            todasNotas = service.listarTodas();
             filtrar();
         } catch (SQLException e) {
             mostrarErro("Erro ao carregar notas fiscais: " + e.getMessage());
-            e.printStackTrace();
         }
     }
 
@@ -119,7 +117,6 @@ public class NotaFiscalController {
 
     private void mostrarDetalhes(NotaFiscal nf) {
         labelTituloDetalhe.setText("NF " + nvl(nf.getNumero()) + "  ·  " + nvl(nf.getNatureza()));
-
         dData.setText(nf.getData() != null ? nf.getData().toString() : "—");
         dOrdemCompra.setText(nvl(nf.getOrdemCompra()));
         dTransportadora.setText(nvl(nf.getTransportadora()));
@@ -138,7 +135,6 @@ public class NotaFiscalController {
             painelDetalhes.setManaged(true);
             painelDetalhes.setOpacity(0);
             painelDetalhes.setScaleY(0.92);
-
             new Timeline(new KeyFrame(Duration.millis(180),
                     new KeyValue(painelDetalhes.opacityProperty(), 1),
                     new KeyValue(painelDetalhes.scaleYProperty(), 1)
@@ -182,7 +178,7 @@ public class NotaFiscalController {
                 .showAndWait().ifPresent(btn -> {
                     if (btn == ButtonType.YES) {
                         try {
-                            notaFiscalDAO.excluir(s.getId());
+                            service.excluir(s.getId());
                             fecharDetalhes();
                             carregar();
                         } catch (SQLException e) {
@@ -215,9 +211,7 @@ public class NotaFiscalController {
         return texto != null && texto.toLowerCase().contains(busca);
     }
 
-    private String nvl(String s) {
-        return (s == null || s.isBlank()) ? "—" : s;
-    }
+    private String nvl(String s) { return (s == null || s.isBlank()) ? "—" : s; }
 
     private void mostrarErro(String msg) {
         new Alert(Alert.AlertType.ERROR, msg, ButtonType.OK).showAndWait();

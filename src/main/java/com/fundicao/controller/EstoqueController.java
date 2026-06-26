@@ -1,9 +1,9 @@
 package com.fundicao.controller;
 
-import com.fundicao.dao.EstoqueDAO;
-import com.fundicao.dao.ProdutoDAO;
 import com.fundicao.model.Movimentacao;
 import com.fundicao.model.SaldoEstoque;
+import com.fundicao.service.EstoqueService;
+import com.fundicao.service.ProdutoService;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.fxml.FXML;
@@ -41,7 +41,8 @@ public class EstoqueController {
 
     @FXML private Label labelTotal;
 
-    private final EstoqueDAO estoqueDAO = new EstoqueDAO();
+    private final EstoqueService service = new EstoqueService();
+    private final ProdutoService produtoService = new ProdutoService();
     private List<SaldoEstoque> todosSaldos;
 
     @FXML
@@ -56,17 +57,14 @@ public class EstoqueController {
     private void configurarColunas() {
         colProduto.setCellValueFactory(c ->
                 new SimpleStringProperty(c.getValue().getDescricao()));
-
         colSaldo.setCellValueFactory(c ->
                 new SimpleStringProperty(
                         String.format("%.2f kg", c.getValue().getSaldo())));
-
         colUltimaMov.setCellValueFactory(c -> {
             String data = c.getValue().getUltimaMovimentacao();
             return new SimpleStringProperty(data != null ? data : "—");
         });
 
-        // Coluna Tipo com cor verde/vermelho
         TableColumn<SaldoEstoque, String> colTipo = new TableColumn<>("Tipo");
         colTipo.setPrefWidth(80);
         colTipo.setCellValueFactory(c -> {
@@ -86,7 +84,6 @@ public class EstoqueController {
         });
         tabela.getColumns().add(0, colTipo);
 
-        // Colunas do histórico
         colHistTipo.setCellValueFactory(c ->
                 new SimpleStringProperty(c.getValue().getTipo()));
         colHistQtd.setCellValueFactory(c ->
@@ -134,7 +131,7 @@ public class EstoqueController {
 
     private void carregar() {
         try {
-            todosSaldos = estoqueDAO.getSaldoTodos();
+            todosSaldos = service.getSaldoTodos();
             filtrar(campoBusca.getText());
         } catch (SQLException e) {
             mostrarErro("Erro ao carregar estoque: " + e.getMessage());
@@ -172,7 +169,7 @@ public class EstoqueController {
             labelNomeProduto.setText(row.getDescricao());
             labelSaldoDetalhe.setText(String.format("%.2f kg", row.getSaldo()));
 
-            List<Movimentacao> historico = estoqueDAO.getHistorico(row.getProdutoId());
+            List<Movimentacao> historico = service.listarMovimentacoes(row.getProdutoId());
             tabelaHistorico.setItems(FXCollections.observableArrayList(historico));
 
             painelHistorico.setVisible(true);
@@ -209,7 +206,7 @@ public class EstoqueController {
 
             SaldoEstoque selecionado = tabela.getSelectionModel().getSelectedItem();
             if (selecionado != null) {
-                var produto = new ProdutoDAO().buscarPorId(selecionado.getProdutoId());
+                var produto = produtoService.buscarPorId(selecionado.getProdutoId());
                 if (produto != null) ctrl.setProduto(produto);
             }
 
@@ -230,21 +227,21 @@ public class EstoqueController {
                     .showAndWait();
             return;
         }
-        Alert confirm = new Alert(Alert.AlertType.CONFIRMATION,
+        new Alert(Alert.AlertType.CONFIRMATION,
                 "Excluir esta movimentação? O saldo será recalculado.",
-                ButtonType.YES, ButtonType.NO);
-        confirm.showAndWait().ifPresent(btn -> {
-            if (btn == ButtonType.YES) {
-                try {
-                    estoqueDAO.excluir(selecionada.getId());
-                    carregar();
-                    SaldoEstoque row = tabela.getSelectionModel().getSelectedItem();
-                    if (row != null) mostrarHistorico(row);
-                } catch (SQLException e) {
-                    mostrarErro("Erro ao excluir: " + e.getMessage());
-                }
-            }
-        });
+                ButtonType.YES, ButtonType.NO)
+                .showAndWait().ifPresent(btn -> {
+                    if (btn == ButtonType.YES) {
+                        try {
+                            service.excluir(selecionada.getId());
+                            carregar();
+                            SaldoEstoque row = tabela.getSelectionModel().getSelectedItem();
+                            if (row != null) mostrarHistorico(row);
+                        } catch (SQLException e) {
+                            mostrarErro("Erro ao excluir: " + e.getMessage());
+                        }
+                    }
+                });
     }
 
     private void mostrarErro(String msg) {
