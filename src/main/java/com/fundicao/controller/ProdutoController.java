@@ -1,9 +1,8 @@
 package com.fundicao.controller;
 
-import com.fundicao.dao.ProdutoDAO;
-import com.fundicao.dao.ProdutoFornecedorDAO;
 import com.fundicao.model.Produto;
 import com.fundicao.model.ProdutoFornecedor;
+import com.fundicao.service.ProdutoService;
 import javafx.animation.KeyFrame;
 import javafx.animation.KeyValue;
 import javafx.animation.Timeline;
@@ -41,8 +40,7 @@ public class ProdutoController {
     @FXML private TableColumn<ProdutoFornecedor, String> colFornVrPeca;
     @FXML private TableColumn<ProdutoFornecedor, String> colFornVrTotal;
 
-    private final ProdutoDAO dao = new ProdutoDAO();
-    private final ProdutoFornecedorDAO pfDao = new ProdutoFornecedorDAO();
+    private final ProdutoService service = new ProdutoService();
     private final ObservableList<Produto> dados = FXCollections.observableArrayList();
     private final ObservableList<ProdutoFornecedor> dadosFornecedores = FXCollections.observableArrayList();
 
@@ -54,7 +52,7 @@ public class ProdutoController {
                 new SimpleStringProperty(nvl(c.getValue().getClassificacaoFiscal())));
         colFornecedores.setCellValueFactory(c -> {
             try {
-                List<ProdutoFornecedor> forn = pfDao.listarPorProduto(c.getValue().getId());
+                List<ProdutoFornecedor> forn = service.listarFornecedoresPorProduto(c.getValue().getId());
                 return new SimpleStringProperty(forn.size() + " fornecedor(es)");
             } catch (SQLException e) {
                 return new SimpleStringProperty("erro");
@@ -86,7 +84,7 @@ public class ProdutoController {
 
     private void carregarDados() {
         try {
-            List<Produto> lista = dao.listarTodos();
+            List<Produto> lista = service.listarTodos();
             dados.setAll(lista);
             labelTotal.setText("Total: " + lista.size() + " produtos");
         } catch (SQLException e) {
@@ -97,8 +95,8 @@ public class ProdutoController {
     private void filtrar(String termo) {
         try {
             List<Produto> lista = (termo == null || termo.isBlank())
-                    ? dao.listarTodos()
-                    : dao.buscar(termo.trim());
+                    ? service.listarTodos()
+                    : service.buscar(termo.trim());
             dados.setAll(lista);
             labelTotal.setText("Total: " + lista.size() + " produtos");
         } catch (SQLException e) {
@@ -112,7 +110,7 @@ public class ProdutoController {
             dNcm.setText(nvl(p.getClassificacaoFiscal()));
             dCriadoEm.setText(nvl(p.getCriadoEm()));
 
-            List<ProdutoFornecedor> forn = pfDao.listarPorProduto(p.getId());
+            List<ProdutoFornecedor> forn = service.listarFornecedoresPorProduto(p.getId());
             dadosFornecedores.setAll(forn);
 
             if (!painelDetalhes.isVisible()) {
@@ -150,14 +148,20 @@ public class ProdutoController {
     @FXML
     private void alterar() {
         Produto s = tabela.getSelectionModel().getSelectedItem();
-        if (s == null) { mostrarAviso("Selecione um produto para alterar."); return; }
+        if (s == null) {
+            mostrarAviso("Selecione um produto para alterar.");
+            return;
+        }
         abrirDialog(s);
     }
 
     @FXML
     private void excluir() {
         Produto s = tabela.getSelectionModel().getSelectedItem();
-        if (s == null) { mostrarAviso("Selecione um produto para excluir."); return; }
+        if (s == null) {
+            mostrarAviso("Selecione um produto para excluir.");
+            return;
+        }
 
         Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
         confirm.setTitle("Confirmar exclusão");
@@ -166,7 +170,7 @@ public class ProdutoController {
         Optional<ButtonType> res = confirm.showAndWait();
         if (res.isPresent() && res.get() == ButtonType.OK) {
             try {
-                dao.excluir(s.getId());
+                service.excluirProduto(s.getId());
                 fecharDetalhes();
                 carregarDados();
             } catch (SQLException e) {
@@ -192,18 +196,10 @@ public class ProdutoController {
             Optional<ButtonType> result = dialog.showAndWait();
             if (result.isPresent() && result.get() == ButtonType.OK) {
                 Produto novo = ctrl.getProduto();
-                int id;
-                if (produto == null) {
-                    id = dao.inserir(novo);
-                } else {
+                if (produto != null) {
                     novo.setId(produto.getId());
-                    dao.atualizar(novo);
-                    id = novo.getId();
                 }
-                for (ProdutoFornecedor pf : ctrl.getFornecedores()) {
-                    pf.setProdutoId(id);
-                    pfDao.salvar(pf);
-                }
+                service.salvarProduto(novo, ctrl.getFornecedores());
                 carregarDados();
             }
         } catch (IOException e) {
@@ -219,7 +215,9 @@ public class ProdutoController {
 
     private void mostrarAviso(String msg) {
         Alert a = new Alert(Alert.AlertType.WARNING);
-        a.setHeaderText(null); a.setContentText(msg); a.showAndWait();
+        a.setHeaderText(null);
+        a.setContentText(msg);
+        a.showAndWait();
     }
 
     private void mostrarErro(String msg) {

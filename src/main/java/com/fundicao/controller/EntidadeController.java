@@ -1,7 +1,7 @@
 package com.fundicao.controller;
 
-import com.fundicao.dao.EntidadeDAO;
 import com.fundicao.model.Entidade;
+import com.fundicao.service.EntidadeService;
 import javafx.animation.KeyFrame;
 import javafx.animation.KeyValue;
 import javafx.animation.Timeline;
@@ -39,7 +39,7 @@ public class EntidadeController {
     @FXML private Label dCidade;
     @FXML private Label dCep;
 
-    private final EntidadeDAO dao = new EntidadeDAO();
+    private final EntidadeService service = new EntidadeService();
     private final ObservableList<Entidade> dados = FXCollections.observableArrayList();
 
     @FXML
@@ -68,7 +68,7 @@ public class EntidadeController {
 
     private void carregarDados() {
         try {
-            List<Entidade> lista = dao.listarTodos();
+            List<Entidade> lista = service.listarTodos();
             dados.setAll(lista);
             labelTotal.setText("Total: " + lista.size() + " registros");
         } catch (SQLException e) {
@@ -79,8 +79,8 @@ public class EntidadeController {
     private void filtrar(String termo) {
         try {
             List<Entidade> lista = (termo == null || termo.isBlank())
-                    ? dao.listarTodos()
-                    : dao.buscar(termo.trim());
+                    ? service.listarTodos()
+                    : service.buscar(termo.trim());
             dados.setAll(lista);
             labelTotal.setText("Total: " + lista.size() + " registros");
         } catch (SQLException e) {
@@ -176,7 +176,7 @@ public class EntidadeController {
         Optional<ButtonType> resultado = confirm.showAndWait();
         if (resultado.isPresent() && resultado.get() == ButtonType.OK) {
             try {
-                dao.excluir(selecionada.getId());
+                service.excluir(selecionada.getId());
                 fecharDetalhes();
                 carregarDados();
             } catch (SQLException e) {
@@ -202,12 +202,10 @@ public class EntidadeController {
             Optional<ButtonType> result = dialog.showAndWait();
             if (result.isPresent() && result.get() == ButtonType.OK) {
                 Entidade novo = dialogCtrl.getEntidade();
-                if (entidade == null) {
-                    dao.inserir(novo);
-                } else {
+                if (entidade != null) {
                     novo.setId(entidade.getId());
-                    dao.atualizar(novo);
                 }
+                service.salvar(novo);
                 carregarDados();
             }
         } catch (IOException e) {
