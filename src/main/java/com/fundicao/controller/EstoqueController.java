@@ -206,8 +206,12 @@ public class EstoqueController {
 
             SaldoEstoque selecionado = tabela.getSelectionModel().getSelectedItem();
             if (selecionado != null) {
-                var produto = produtoService.buscarPorId(selecionado.getProdutoId());
-                if (produto != null) ctrl.setProduto(produto);
+                try {
+                    var produto = produtoService.buscarPorId(selecionado.getProdutoId());
+                    if (produto != null) ctrl.setProduto(produto);
+                } catch (SQLException e) {
+                    mostrarErro("Erro ao carregar produto: " + e.getMessage());
+                }
             }
 
             stage.showAndWait();
