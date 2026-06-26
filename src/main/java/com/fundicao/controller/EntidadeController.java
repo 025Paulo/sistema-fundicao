@@ -2,6 +2,7 @@ package com.fundicao.controller;
 
 import com.fundicao.model.Entidade;
 import com.fundicao.service.EntidadeService;
+import com.fundicao.util.AlertUtil;
 import javafx.animation.KeyFrame;
 import javafx.animation.KeyValue;
 import javafx.animation.Timeline;
@@ -16,7 +17,6 @@ import javafx.util.Duration;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.List;
-import java.util.Optional;
 
 public class EntidadeController {
 
@@ -72,7 +72,7 @@ public class EntidadeController {
             dados.setAll(lista);
             labelTotal.setText("Total: " + lista.size() + " registros");
         } catch (SQLException e) {
-            mostrarErro("Erro ao carregar entidades: " + e.getMessage());
+            AlertUtil.erro("Erro ao carregar entidades: " + e.getMessage());
         }
     }
 
@@ -84,7 +84,7 @@ public class EntidadeController {
             dados.setAll(lista);
             labelTotal.setText("Total: " + lista.size() + " registros");
         } catch (SQLException e) {
-            mostrarErro("Erro ao filtrar entidades: " + e.getMessage());
+            AlertUtil.erro("Erro ao filtrar entidades: " + e.getMessage());
         }
     }
 
@@ -98,7 +98,8 @@ public class EntidadeController {
         dCnpj.setText(nvl(e.getCnpjCpf()));
         dIe.setText(nvl(e.getInscricaoEstadual()));
 
-        String end = java.util.Arrays.stream(new String[]{e.getRua(), e.getNumero(), e.getComplemento(), e.getBairro()})
+        String end = java.util.Arrays.stream(
+                        new String[]{e.getRua(), e.getNumero(), e.getComplemento(), e.getBairro()})
                 .filter(s -> s != null && !s.isBlank())
                 .collect(java.util.stream.Collectors.joining(", "));
         dEndereco.setText(end.isBlank() ? "—" : end);
@@ -118,9 +119,7 @@ public class EntidadeController {
             Timeline tl = new Timeline(
                     new KeyFrame(Duration.millis(180),
                             new KeyValue(painelDetalhes.opacityProperty(), 1),
-                            new KeyValue(painelDetalhes.scaleYProperty(), 1)
-                    )
-            );
+                            new KeyValue(painelDetalhes.scaleYProperty(), 1)));
             tl.play();
         }
     }
@@ -130,9 +129,7 @@ public class EntidadeController {
         Timeline tl = new Timeline(
                 new KeyFrame(Duration.millis(150),
                         new KeyValue(painelDetalhes.opacityProperty(), 0),
-                        new KeyValue(painelDetalhes.scaleYProperty(), 0.92)
-                )
-        );
+                        new KeyValue(painelDetalhes.scaleYProperty(), 0.92)));
         tl.setOnFinished(e -> {
             painelDetalhes.setVisible(false);
             painelDetalhes.setManaged(false);
@@ -154,7 +151,7 @@ public class EntidadeController {
     private void alterar() {
         Entidade selecionada = tabela.getSelectionModel().getSelectedItem();
         if (selecionada == null) {
-            mostrarAviso("Selecione uma entidade para alterar.");
+            AlertUtil.aviso("Selecione uma entidade para alterar.");
             return;
         }
         abrirDialog(selecionada);
@@ -164,23 +161,17 @@ public class EntidadeController {
     private void excluir() {
         Entidade selecionada = tabela.getSelectionModel().getSelectedItem();
         if (selecionada == null) {
-            mostrarAviso("Selecione uma entidade para excluir.");
+            AlertUtil.aviso("Selecione uma entidade para excluir.");
             return;
         }
 
-        Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
-        confirm.setTitle("Confirmar exclusão");
-        confirm.setHeaderText(null);
-        confirm.setContentText("Excluir \"" + selecionada.getRazaoSocial() + "\"?");
-
-        Optional<ButtonType> resultado = confirm.showAndWait();
-        if (resultado.isPresent() && resultado.get() == ButtonType.OK) {
+        if (AlertUtil.confirmar("Excluir \"" + selecionada.getRazaoSocial() + "\"?")) {
             try {
                 service.excluir(selecionada.getId());
                 fecharDetalhes();
                 carregarDados();
             } catch (SQLException e) {
-                mostrarErro("Erro ao excluir entidade: " + e.getMessage());
+                AlertUtil.erro("Erro ao excluir entidade: " + e.getMessage());
             }
         }
     }
@@ -188,8 +179,7 @@ public class EntidadeController {
     private void abrirDialog(Entidade entidade) {
         try {
             FXMLLoader loader = new FXMLLoader(
-                    getClass().getResource("/com/fundicao/view/entidade-dialog.fxml")
-            );
+                    getClass().getResource("/com/fundicao/view/entidade-dialog.fxml"));
             VBox dialogContent = loader.load();
             EntidadeDialogController dialogCtrl = loader.getController();
             dialogCtrl.setEntidade(entidade);
@@ -199,34 +189,21 @@ public class EntidadeController {
             dialog.getDialogPane().setContent(dialogContent);
             dialog.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
 
-            Optional<ButtonType> result = dialog.showAndWait();
-            if (result.isPresent() && result.get() == ButtonType.OK) {
-                Entidade novo = dialogCtrl.getEntidade();
-                if (entidade != null) {
-                    novo.setId(entidade.getId());
+            dialog.showAndWait().ifPresent(btn -> {
+                if (btn == ButtonType.OK) {
+                    try {
+                        Entidade novo = dialogCtrl.getEntidade();
+                        if (entidade != null) novo.setId(entidade.getId());
+                        service.salvar(novo);
+                        carregarDados();
+                    } catch (SQLException e) {
+                        AlertUtil.erro("Erro ao salvar entidade: " + e.getMessage());
+                    }
                 }
-                service.salvar(novo);
-                carregarDados();
-            }
+            });
+
         } catch (IOException e) {
-            mostrarErro("Erro ao abrir formulário: " + e.getMessage());
-        } catch (SQLException e) {
-            mostrarErro("Erro ao salvar entidade: " + e.getMessage());
+            AlertUtil.erro("Erro ao abrir formulário: " + e.getMessage());
         }
-    }
-
-    private void mostrarAviso(String msg) {
-        Alert alert = new Alert(Alert.AlertType.WARNING);
-        alert.setHeaderText(null);
-        alert.setContentText(msg);
-        alert.showAndWait();
-    }
-
-    private void mostrarErro(String msg) {
-        Alert alert = new Alert(Alert.AlertType.ERROR);
-        alert.setTitle("Erro");
-        alert.setHeaderText(null);
-        alert.setContentText(msg);
-        alert.showAndWait();
     }
 }

@@ -1,11 +1,11 @@
 package com.fundicao.controller;
 
-import com.fundicao.dao.EntidadeDAO;
-import com.fundicao.dao.EstoqueDAO;
-import com.fundicao.dao.ProdutoDAO;
 import com.fundicao.model.Entidade;
 import com.fundicao.model.Movimentacao;
 import com.fundicao.model.Produto;
+import com.fundicao.service.EntidadeService;
+import com.fundicao.service.EstoqueService;
+import com.fundicao.service.ProdutoService;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
@@ -33,9 +33,9 @@ public class MovimentacaoDialogController {
     private List<Produto> todosProdutos;
     private List<Entidade> todasEntidades;
 
-    private final EstoqueDAO estoqueDAO = new EstoqueDAO();
-    private final ProdutoDAO produtoDAO = new ProdutoDAO();
-    private final EntidadeDAO entidadeDAO = new EntidadeDAO();
+    private final EstoqueService estoqueService = new EstoqueService();
+    private final ProdutoService produtoService = new ProdutoService();
+    private final EntidadeService entidadeService = new EntidadeService();
 
     @FXML
     public void initialize() {
@@ -62,43 +62,37 @@ public class MovimentacaoDialogController {
 
     private void carregarCombos() {
         try {
-            todosProdutos = produtoDAO.listarTodos();
+            todosProdutos = produtoService.listarTodos();
             comboProduto.setItems(FXCollections.observableArrayList(todosProdutos));
             comboProduto.setConverter(new javafx.util.StringConverter<>() {
                 public String toString(Produto p) { return p == null ? "" : p.getDescricao(); }
                 public Produto fromString(String s) { return null; }
             });
 
-            todasEntidades = entidadeDAO.listarTodos();
+            todasEntidades = entidadeService.listarTodos();
             comboEntidade.setItems(FXCollections.observableArrayList(todasEntidades));
             comboEntidade.setConverter(new javafx.util.StringConverter<>() {
                 public String toString(Entidade e) { return e == null ? "" : e.getRazaoSocial(); }
                 public Entidade fromString(String s) { return null; }
             });
-        } catch (RuntimeException e) {
+        } catch (SQLException e) {
             mostrarErro("Erro ao carregar dados: " + e.getMessage());
         }
     }
 
-    // Filtro por digitação no combo de Produto
     private void configurarFiltroProduto() {
         comboProduto.setEditable(true);
         comboProduto.getEditor().textProperty().addListener((obs, old, novo) -> {
-            // Ignora se a mudança veio de uma seleção (não de digitação manual)
             Produto selecionado = comboProduto.getValue();
             if (selecionado != null && selecionado.getDescricao().equals(novo)) return;
-
             String lower = novo == null ? "" : novo.toLowerCase();
             ObservableList<Produto> filtrado = FXCollections.observableArrayList(
                     todosProdutos.stream()
                             .filter(p -> p.getDescricao().toLowerCase().contains(lower))
-                            .toList()
-            );
+                            .toList());
             comboProduto.setItems(filtrado);
-            comboProduto.show(); // abre o dropdown com os resultados
+            comboProduto.show();
         });
-
-        // Ao perder foco, se o texto não bater com nenhum produto, limpa
         comboProduto.getEditor().focusedProperty().addListener((obs, wasFocused, isFocused) -> {
             if (!isFocused) {
                 String texto = comboProduto.getEditor().getText();
@@ -113,23 +107,19 @@ public class MovimentacaoDialogController {
         });
     }
 
-    // Filtro por digitação no combo de Entidade
     private void configurarFiltroEntidade() {
         comboEntidade.setEditable(true);
         comboEntidade.getEditor().textProperty().addListener((obs, old, novo) -> {
             Entidade selecionada = comboEntidade.getValue();
             if (selecionada != null && selecionada.getRazaoSocial().equals(novo)) return;
-
             String lower = novo == null ? "" : novo.toLowerCase();
             ObservableList<Entidade> filtrado = FXCollections.observableArrayList(
                     todasEntidades.stream()
                             .filter(e -> e.getRazaoSocial().toLowerCase().contains(lower))
-                            .toList()
-            );
+                            .toList());
             comboEntidade.setItems(filtrado);
             comboEntidade.show();
         });
-
         comboEntidade.getEditor().focusedProperty().addListener((obs, wasFocused, isFocused) -> {
             if (!isFocused) {
                 String texto = comboEntidade.getEditor().getText();
@@ -146,12 +136,10 @@ public class MovimentacaoDialogController {
 
     @FXML
     private void salvar() {
-        if (!validar()) return;
-
         try {
             Movimentacao m = new Movimentacao();
-            m.setProdutoId(comboProduto.getValue().getId());
-            m.setEntidadeId(comboEntidade.getValue().getId());
+            m.setProdutoId(comboProduto.getValue() == null ? 0 : comboProduto.getValue().getId());
+            m.setEntidadeId(comboEntidade.getValue() == null ? null : comboEntidade.getValue().getId());
             m.setTipo(tipo);
             m.setQuantidade(Double.parseDouble(
                     campoQuantidade.getText().trim().replace(",", ".")));
@@ -163,51 +151,18 @@ public class MovimentacaoDialogController {
             m.setOrdemCompra(campoOrdemCompra.getText().trim());
             m.setObservacoes(campoObservacoes.getText().trim());
 
-            if ("Saida".equals(tipo)) {
-                double saldo = estoqueDAO.getSaldo(m.getProdutoId());
-                if (m.getQuantidade() > saldo) {
-                    mostrarErro(String.format("Saldo insuficiente! Disponível: %.2f kg", saldo));
-                    return;
-                }
-            }
-
-            estoqueDAO.registrar(m);
+            // validações de negócio + saldo ficam no service
+            estoqueService.registrar(m);
             salvo = true;
             fecharJanela();
 
         } catch (NumberFormatException e) {
             mostrarErro("Quantidade inválida. Use números (ex: 10,5)");
+        } catch (IllegalArgumentException e) {
+            mostrarErro(e.getMessage());
         } catch (SQLException e) {
             mostrarErro("Erro ao salvar: " + e.getMessage());
         }
-    }
-
-    private boolean validar() {
-        if (comboProduto.getValue() == null) {
-            mostrarErro("Selecione um produto da lista.");
-            return false;
-        }
-        if (comboEntidade.getValue() == null) {
-            mostrarErro("Selecione um fornecedor/cliente da lista.");
-            return false;
-        }
-        String qtd = campoQuantidade.getText().trim();
-        if (qtd.isEmpty()) {
-            mostrarErro("Informe a quantidade.");
-            return false;
-        }
-        try {
-            double v = Double.parseDouble(qtd.replace(",", "."));
-            if (v <= 0) { mostrarErro("Quantidade deve ser maior que zero."); return false; }
-        } catch (NumberFormatException e) {
-            mostrarErro("Quantidade inválida.");
-            return false;
-        }
-        if (campoData.getValue() == null) {
-            mostrarErro("Informe a data.");
-            return false;
-        }
-        return true;
     }
 
     @FXML

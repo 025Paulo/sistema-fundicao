@@ -4,6 +4,7 @@ import com.fundicao.model.Movimentacao;
 import com.fundicao.model.SaldoEstoque;
 import com.fundicao.service.EstoqueService;
 import com.fundicao.service.ProdutoService;
+import com.fundicao.util.AlertUtil;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.fxml.FXML;
@@ -231,21 +232,16 @@ public class EstoqueController {
                     .showAndWait();
             return;
         }
-        new Alert(Alert.AlertType.CONFIRMATION,
-                "Excluir esta movimentação? O saldo será recalculado.",
-                ButtonType.YES, ButtonType.NO)
-                .showAndWait().ifPresent(btn -> {
-                    if (btn == ButtonType.YES) {
-                        try {
-                            service.excluir(selecionada.getId());
-                            carregar();
-                            SaldoEstoque row = tabela.getSelectionModel().getSelectedItem();
-                            if (row != null) mostrarHistorico(row);
-                        } catch (SQLException e) {
-                            mostrarErro("Erro ao excluir: " + e.getMessage());
-                        }
-                    }
-                });
+        if (AlertUtil.confirmar("Excluir esta movimentação? O saldo será recalculado.")) {
+            try {
+                service.excluir(selecionada.getId());
+                carregar();
+                SaldoEstoque row = tabela.getSelectionModel().getSelectedItem();
+                if (row != null) mostrarHistorico(row);
+            } catch (SQLException e) {
+                AlertUtil.erro("Erro ao excluir: " + e.getMessage());
+            }
+        }
     }
 
     private void mostrarErro(String msg) {
