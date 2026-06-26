@@ -1,19 +1,20 @@
 package com.fundicao.controller;
 
-import com.fundicao.dao.EntidadeDAO;
-import com.fundicao.dao.ProdutoFornecedorDAO;
 import com.fundicao.model.Entidade;
 import com.fundicao.model.Produto;
 import com.fundicao.model.ProdutoFornecedor;
+import com.fundicao.service.EntidadeService;
+import com.fundicao.service.ProdutoService;
+import com.fundicao.util.AlertUtil;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
 
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 
 public class ProdutoDialogController {
 
@@ -34,7 +35,8 @@ public class ProdutoDialogController {
     @FXML private TextField campoVrTotal;
 
     private final ObservableList<ProdutoFornecedor> fornecedores = FXCollections.observableArrayList();
-    private final EntidadeDAO entidadeDAO = new EntidadeDAO();
+    private final EntidadeService entidadeService = new EntidadeService();
+    private final ProdutoService produtoService = new ProdutoService();
     private int produtoIdExistente = -1;
 
     @FXML
@@ -47,24 +49,21 @@ public class ProdutoDialogController {
 
         tabelaForn.setItems(fornecedores);
 
-        // carrega só fornecedores
-        List<Entidade> fornList = entidadeDAO.listarTodos()
-                .stream()
-                .filter(e -> "Fornecedor".equals(e.getTipo()))
-                .toList();
-        comboFornecedor.setItems(FXCollections.observableArrayList(fornList));
+        try {
+            List<Entidade> fornList = entidadeService.listarTodos()
+                    .stream()
+                    .filter(e -> "Fornecedor".equals(e.getTipo()))
+                    .toList();
+            comboFornecedor.setItems(FXCollections.observableArrayList(fornList));
+        } catch (SQLException e) {
+            AlertUtil.erro("Erro ao carregar fornecedores: " + e.getMessage());
+        }
 
-        comboFornecedor.setConverter(new javafx.util.StringConverter<Entidade>() {
-            @Override
-            public String toString(Entidade e) {
-                return e == null ? "" : e.getRazaoSocial();
-            }
-            @Override
+        comboFornecedor.setConverter(new javafx.util.StringConverter<>() {
+            public String toString(Entidade e) { return e == null ? "" : e.getRazaoSocial(); }
             public Entidade fromString(String s) { return null; }
         });
     }
-
-
 
     public void setProduto(Produto p) {
         if (p == null) return;
@@ -72,9 +71,11 @@ public class ProdutoDialogController {
         campoDescricao.setText(p.getDescricao());
         campoNcm.setText(p.getClassificacaoFiscal());
 
-        // carrega vínculos existentes
-        ProdutoFornecedorDAO pfDao = new ProdutoFornecedorDAO();
-        fornecedores.setAll(pfDao.listarPorProduto(p.getId()));
+        try {
+            fornecedores.setAll(produtoService.listarFornecedoresPorProduto(p.getId()));
+        } catch (SQLException e) {
+            AlertUtil.erro("Erro ao carregar fornecedores do produto: " + e.getMessage());
+        }
     }
 
     public Produto getProduto() {
@@ -91,16 +92,15 @@ public class ProdutoDialogController {
     @FXML
     private void adicionarFornecedor() {
         Entidade forn = comboFornecedor.getValue();
-        if (forn == null) return;
+        if (forn == null) {
+            AlertUtil.aviso("Selecione um fornecedor antes de adicionar.");
+            return;
+        }
 
-        // evita duplicata na lista local
         boolean jaExiste = fornecedores.stream()
                 .anyMatch(pf -> pf.getFornecedorId() == forn.getId());
         if (jaExiste) {
-            Alert a = new Alert(Alert.AlertType.WARNING);
-            a.setHeaderText(null);
-            a.setContentText("Esse fornecedor já foi adicionado.");
-            a.showAndWait();
+            AlertUtil.aviso("Esse fornecedor já foi adicionado.");
             return;
         }
 
@@ -113,26 +113,30 @@ public class ProdutoDialogController {
         pf.setVrTotal(parseDouble(campoVrTotal.getText()));
         fornecedores.add(pf);
 
-        // limpa campos
         comboFornecedor.setValue(null);
-        campoPeso.clear(); campoVrKg.clear();
-        campoVrPeca.clear(); campoVrTotal.clear();
+        campoPeso.clear();
+        campoVrKg.clear();
+        campoVrPeca.clear();
+        campoVrTotal.clear();
     }
 
     @FXML
     private void removerFornecedor() {
         ProdutoFornecedor sel = tabelaForn.getSelectionModel().getSelectedItem();
-        if (sel == null) return;
+        if (sel == null) {
+            AlertUtil.aviso("Selecione um fornecedor na tabela para remover.");
+            return;
+        }
 
-        Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
-        confirm.setHeaderText(null);
-        confirm.setContentText("Remover vínculo com \"" + sel.getFornecedorNome() + "\"?");
-        Optional<ButtonType> res = confirm.showAndWait();
-        if (res.isPresent() && res.get() == ButtonType.OK) {
-            if (sel.getId() > 0) {
-                new ProdutoFornecedorDAO().excluir(sel.getId());
+        if (AlertUtil.confirmar("Remover vínculo com \"" + sel.getFornecedorNome() + "\"?")) {
+            try {
+                if (sel.getId() > 0) {
+                    produtoService.excluirFornecedorDoProduto(sel.getId());
+                }
+                fornecedores.remove(sel);
+            } catch (SQLException e) {
+                AlertUtil.erro("Erro ao remover fornecedor: " + e.getMessage());
             }
-            fornecedores.remove(sel);
         }
     }
 

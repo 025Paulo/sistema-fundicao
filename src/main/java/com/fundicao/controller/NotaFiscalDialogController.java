@@ -1,9 +1,10 @@
 package com.fundicao.controller;
 
-import com.fundicao.dao.EntidadeDAO;
-import com.fundicao.dao.NotaFiscalDAO;
 import com.fundicao.model.Entidade;
 import com.fundicao.model.NotaFiscal;
+import com.fundicao.service.EntidadeService;
+import com.fundicao.service.NotaFiscalService;
+import com.fundicao.util.AlertUtil;
 import javafx.collections.FXCollections;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
@@ -29,8 +30,8 @@ public class NotaFiscalDialogController {
     @FXML private TextField campoPesoLiquido;
     @FXML private Button btnSalvar;
 
-    private final NotaFiscalDAO notaFiscalDAO = new NotaFiscalDAO();
-    private final EntidadeDAO entidadeDAO = new EntidadeDAO();
+    private final NotaFiscalService notaFiscalService = new NotaFiscalService();
+    private final EntidadeService entidadeService = new EntidadeService();
 
     private boolean salvo = false;
     private NotaFiscal notaEditando;
@@ -44,7 +45,6 @@ public class NotaFiscalDialogController {
 
     public void setNotaFiscal(NotaFiscal nota) {
         this.notaEditando = nota;
-
         labelTitulo.setText("Alterar Nota Fiscal");
         btnSalvar.setText("Salvar Alteração");
 
@@ -68,21 +68,14 @@ public class NotaFiscalDialogController {
 
     private void carregarEntidades() {
         try {
-            List<Entidade> entidades = entidadeDAO.listarTodos();
+            List<Entidade> entidades = entidadeService.listarTodos();
             comboEntidade.setItems(FXCollections.observableArrayList(entidades));
             comboEntidade.setConverter(new StringConverter<>() {
-                @Override
-                public String toString(Entidade e) {
-                    return e == null ? "" : e.getRazaoSocial();
-                }
-
-                @Override
-                public Entidade fromString(String string) {
-                    return null;
-                }
+                public String toString(Entidade e) { return e == null ? "" : e.getRazaoSocial(); }
+                public Entidade fromString(String s) { return null; }
             });
-        } catch (RuntimeException e) {
-            mostrarErro("Erro ao carregar entidades: " + e.getMessage());
+        } catch (SQLException e) {
+            AlertUtil.erro("Erro ao carregar entidades: " + e.getMessage());
         }
     }
 
@@ -97,6 +90,11 @@ public class NotaFiscalDialogController {
             nf.setNumero(campoNumero.getText().trim());
             nf.setData(campoData.getValue());
             nf.setOrdemCompra(textoOuNull(campoOrdemCompra.getText()));
+            nf.setTransportadora(textoOuNull(campoTransportadora.getText()));
+            nf.setTransporteRs(parseNullableDouble(campoTransporteRs.getText()));
+            nf.setDescontoRs(parseNullableDouble(campoDescontoRs.getText()));
+            nf.setPesoBruto(parseNullableDouble(campoPesoBruto.getText()));
+            nf.setPesoLiquido(parseNullableDouble(campoPesoLiquido.getText()));
 
             if (comboEntidade.getValue() != null) {
                 nf.setEntidadeId(comboEntidade.getValue().getId());
@@ -106,45 +104,30 @@ public class NotaFiscalDialogController {
                 nf.setEntidadeNome(null);
             }
 
-            nf.setTransportadora(textoOuNull(campoTransportadora.getText()));
-            nf.setTransporteRs(parseNullableDouble(campoTransporteRs.getText()));
-            nf.setDescontoRs(parseNullableDouble(campoDescontoRs.getText()));
-            nf.setPesoBruto(parseNullableDouble(campoPesoBruto.getText()));
-            nf.setPesoLiquido(parseNullableDouble(campoPesoLiquido.getText()));
-
-            if (notaEditando == null) {
-                int idGerado = notaFiscalDAO.inserir(nf);
-                nf.setId(idGerado);
-            } else {
-                notaFiscalDAO.atualizar(nf);
-            }
-
+            notaFiscalService.salvar(nf);
             salvo = true;
             fecharJanela();
 
         } catch (NumberFormatException e) {
-            mostrarErro("Valores numéricos inválidos. Use formato como 10,5");
+            AlertUtil.erro("Valores numéricos inválidos. Use formato como 10,5");
         } catch (SQLException e) {
-            mostrarErro("Erro ao salvar nota fiscal: " + e.getMessage());
+            AlertUtil.erro("Erro ao salvar nota fiscal: " + e.getMessage());
         }
     }
 
     private boolean validar() {
         if (comboNatureza.getValue() == null) {
-            mostrarErro("Selecione a natureza.");
+            AlertUtil.erro("Selecione a natureza.");
             return false;
         }
-
         if (campoNumero.getText() == null || campoNumero.getText().trim().isEmpty()) {
-            mostrarErro("Informe o número da nota.");
+            AlertUtil.erro("Informe o número da nota.");
             return false;
         }
-
         if (campoData.getValue() == null) {
-            mostrarErro("Informe a data.");
+            AlertUtil.erro("Informe a data.");
             return false;
         }
-
         return true;
     }
 
@@ -168,19 +151,11 @@ public class NotaFiscalDialogController {
     }
 
     @FXML
-    private void cancelar() {
-        fecharJanela();
-    }
+    private void cancelar() { fecharJanela(); }
 
-    public boolean isSalvo() {
-        return salvo;
-    }
+    public boolean isSalvo() { return salvo; }
 
     private void fecharJanela() {
         ((Stage) btnSalvar.getScene().getWindow()).close();
-    }
-
-    private void mostrarErro(String msg) {
-        new Alert(Alert.AlertType.ERROR, msg, ButtonType.OK).showAndWait();
     }
 }

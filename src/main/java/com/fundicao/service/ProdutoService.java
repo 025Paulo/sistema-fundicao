@@ -33,6 +33,10 @@ public class ProdutoService {
         produtoDAO.excluir(produtoId);
     }
 
+    public void excluirFornecedorDoProduto(int produtoFornecedorId) throws SQLException {
+        produtoFornecedorDAO.excluir(produtoFornecedorId);
+    }
+
     public int salvarProduto(Produto produto, List<ProdutoFornecedor> fornecedores) throws SQLException {
         int id;
 

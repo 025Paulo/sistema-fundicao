@@ -3,6 +3,7 @@ package com.fundicao.controller;
 import com.fundicao.model.Produto;
 import com.fundicao.model.ProdutoFornecedor;
 import com.fundicao.service.ProdutoService;
+import com.fundicao.util.AlertUtil;
 import javafx.animation.KeyFrame;
 import javafx.animation.KeyValue;
 import javafx.animation.Timeline;
@@ -18,7 +19,6 @@ import javafx.util.Duration;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.List;
-import java.util.Optional;
 
 public class ProdutoController {
 
@@ -50,12 +50,15 @@ public class ProdutoController {
                 new SimpleStringProperty(c.getValue().getDescricao()));
         colNCM.setCellValueFactory(c ->
                 new SimpleStringProperty(nvl(c.getValue().getClassificacaoFiscal())));
+
+        // ⚠️ quantidade de fornecedores exibida via campo pré-carregado
+        // para evitar query por célula, considere adicionar campo 'qtdFornecedores' no model Produto futuramente
         colFornecedores.setCellValueFactory(c -> {
             try {
                 List<ProdutoFornecedor> forn = service.listarFornecedoresPorProduto(c.getValue().getId());
                 return new SimpleStringProperty(forn.size() + " fornecedor(es)");
             } catch (SQLException e) {
-                return new SimpleStringProperty("erro");
+                return new SimpleStringProperty("—");
             }
         });
 
@@ -88,7 +91,7 @@ public class ProdutoController {
             dados.setAll(lista);
             labelTotal.setText("Total: " + lista.size() + " produtos");
         } catch (SQLException e) {
-            mostrarErro("Erro ao carregar produtos: " + e.getMessage());
+            AlertUtil.erro("Erro ao carregar produtos: " + e.getMessage());
         }
     }
 
@@ -100,7 +103,7 @@ public class ProdutoController {
             dados.setAll(lista);
             labelTotal.setText("Total: " + lista.size() + " produtos");
         } catch (SQLException e) {
-            mostrarErro("Erro ao filtrar produtos: " + e.getMessage());
+            AlertUtil.erro("Erro ao filtrar produtos: " + e.getMessage());
         }
     }
 
@@ -124,7 +127,7 @@ public class ProdutoController {
                 )).play();
             }
         } catch (SQLException e) {
-            mostrarErro("Erro ao carregar detalhes: " + e.getMessage());
+            AlertUtil.erro("Erro ao carregar detalhes: " + e.getMessage());
         }
     }
 
@@ -149,7 +152,7 @@ public class ProdutoController {
     private void alterar() {
         Produto s = tabela.getSelectionModel().getSelectedItem();
         if (s == null) {
-            mostrarAviso("Selecione um produto para alterar.");
+            AlertUtil.aviso("Selecione um produto para alterar.");
             return;
         }
         abrirDialog(s);
@@ -159,22 +162,17 @@ public class ProdutoController {
     private void excluir() {
         Produto s = tabela.getSelectionModel().getSelectedItem();
         if (s == null) {
-            mostrarAviso("Selecione um produto para excluir.");
+            AlertUtil.aviso("Selecione um produto para excluir.");
             return;
         }
 
-        Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
-        confirm.setTitle("Confirmar exclusão");
-        confirm.setHeaderText(null);
-        confirm.setContentText("Excluir \"" + s.getDescricao() + "\"?");
-        Optional<ButtonType> res = confirm.showAndWait();
-        if (res.isPresent() && res.get() == ButtonType.OK) {
+        if (AlertUtil.confirmar("Excluir \"" + s.getDescricao() + "\"?")) {
             try {
                 service.excluirProduto(s.getId());
                 fecharDetalhes();
                 carregarDados();
             } catch (SQLException e) {
-                mostrarErro("Erro ao excluir produto: " + e.getMessage());
+                AlertUtil.erro("Erro ao excluir produto: " + e.getMessage());
             }
         }
     }
@@ -193,38 +191,24 @@ public class ProdutoController {
             dialog.getDialogPane().setContent(content);
             dialog.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
 
-            Optional<ButtonType> result = dialog.showAndWait();
-            if (result.isPresent() && result.get() == ButtonType.OK) {
-                Produto novo = ctrl.getProduto();
-                if (produto != null) {
-                    novo.setId(produto.getId());
+            dialog.showAndWait().ifPresent(result -> {
+                if (result == ButtonType.OK) {
+                    try {
+                        Produto novo = ctrl.getProduto();
+                        if (produto != null) novo.setId(produto.getId());
+                        service.salvarProduto(novo, ctrl.getFornecedores());
+                        carregarDados();
+                    } catch (SQLException e) {
+                        AlertUtil.erro("Erro ao salvar produto: " + e.getMessage());
+                    }
                 }
-                service.salvarProduto(novo, ctrl.getFornecedores());
-                carregarDados();
-            }
+            });
         } catch (IOException e) {
-            mostrarErro("Erro ao abrir formulário: " + e.getMessage());
-        } catch (SQLException e) {
-            mostrarErro("Erro ao salvar produto: " + e.getMessage());
+            AlertUtil.erro("Erro ao abrir formulário: " + e.getMessage());
         }
     }
 
     private String nvl(String s) { return (s == null || s.isBlank()) ? "—" : s; }
     private String formatDouble(Double v) { return v != null ? String.format("%.2f kg", v) : "—"; }
     private String formatMoeda(Double v) { return v != null ? String.format("R$ %.2f", v) : "—"; }
-
-    private void mostrarAviso(String msg) {
-        Alert a = new Alert(Alert.AlertType.WARNING);
-        a.setHeaderText(null);
-        a.setContentText(msg);
-        a.showAndWait();
-    }
-
-    private void mostrarErro(String msg) {
-        Alert a = new Alert(Alert.AlertType.ERROR);
-        a.setTitle("Erro");
-        a.setHeaderText(null);
-        a.setContentText(msg);
-        a.showAndWait();
-    }
 }
