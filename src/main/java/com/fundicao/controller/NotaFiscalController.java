@@ -11,6 +11,8 @@ import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
+import javafx.scene.Parent;
+import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.input.Clipboard;
 import javafx.scene.input.ClipboardContent;
@@ -18,6 +20,8 @@ import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyCodeCombination;
 import javafx.scene.input.KeyCombination;
 import javafx.scene.layout.VBox;
+import javafx.stage.Modality;
+import javafx.stage.Stage;
 import javafx.util.Duration;
 
 import java.io.IOException;
@@ -193,25 +197,22 @@ public class NotaFiscalController {
         try {
             FXMLLoader loader = new FXMLLoader(
                     getClass().getResource("/com/fundicao/view/notafiscal-dialog.fxml"));
-            VBox content = loader.load();
+            Parent root = loader.load();
             NotaFiscalDialogController ctrl = loader.getController();
-            ctrl.setNotaFiscal(nf);
 
-            Dialog<ButtonType> dialog = new Dialog<>();
-            dialog.setTitle(nf == null ? "Nova Nota Fiscal" : "Editar Nota Fiscal");
-            dialog.getDialogPane().setContent(content);
-            dialog.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
+            if (nf != null) {
+                ctrl.setNotaFiscal(nf);
+            }
 
-            dialog.showAndWait().ifPresent(result -> {
-                if (result == ButtonType.OK) {
-                    try {
-                        service.salvar(ctrl.getNotaFiscal());
-                        carregarDados();
-                    } catch (SQLException e) {
-                        AlertUtil.erro("Erro ao salvar nota fiscal: " + e.getMessage());
-                    }
-                }
-            });
+            Stage stage = new Stage();
+            stage.setTitle(nf == null ? "Nova Nota Fiscal" : "Editar Nota Fiscal");
+            stage.setScene(new Scene(root));
+            stage.initModality(Modality.APPLICATION_MODAL);
+            stage.showAndWait();
+
+            if (ctrl.isSalvo()) {
+                carregarDados();
+            }
         } catch (IOException e) {
             AlertUtil.erro("Erro ao abrir formul\u00e1rio: " + e.getMessage());
         }
