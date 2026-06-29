@@ -29,32 +29,37 @@ public class NotaFiscalController {
     @FXML private TextField campoBusca;
     @FXML private TableView<NotaFiscal> tabela;
     @FXML private TableColumn<NotaFiscal, String> colNumero;
-    @FXML private TableColumn<NotaFiscal, String> colEmitente;
-    @FXML private TableColumn<NotaFiscal, String> colValor;
-    @FXML private TableColumn<NotaFiscal, String> colDataEmissao;
+    @FXML private TableColumn<NotaFiscal, String> colEntidade;
+    @FXML private TableColumn<NotaFiscal, String> colNatureza;
+    @FXML private TableColumn<NotaFiscal, String> colData;
     @FXML private Label labelTotal;
 
     @FXML private VBox painelDetalhes;
     @FXML private Label labelNumeroDetalhe;
-    @FXML private Label dEmitente;
-    @FXML private Label dDestinatario;
-    @FXML private Label dValor;
-    @FXML private Label dDataEmissao;
-    @FXML private Label dChave;
+    @FXML private Label dEntidade;
+    @FXML private Label dNatureza;
+    @FXML private Label dData;
+    @FXML private Label dOrdemCompra;
+    @FXML private Label dTransportadora;
+    @FXML private Label dPesoBruto;
+    @FXML private Label dPesoLiquido;
 
     private final NotaFiscalService service = new NotaFiscalService();
     private final ObservableList<NotaFiscal> dados = FXCollections.observableArrayList();
+    private List<NotaFiscal> todasAsNotas;
 
     @FXML
     public void initialize() {
         colNumero.setCellValueFactory(c ->
                 new SimpleStringProperty(nvl(c.getValue().getNumero())));
-        colEmitente.setCellValueFactory(c ->
-                new SimpleStringProperty(nvl(c.getValue().getEmitenteNome())));
-        colValor.setCellValueFactory(c ->
-                new SimpleStringProperty(fmtM(c.getValue().getValorTotal())));
-        colDataEmissao.setCellValueFactory(c ->
-                new SimpleStringProperty(nvl(c.getValue().getDataEmissao())));
+        colEntidade.setCellValueFactory(c ->
+                new SimpleStringProperty(nvl(c.getValue().getEntidadeNome())));
+        colNatureza.setCellValueFactory(c ->
+                new SimpleStringProperty(nvl(c.getValue().getNatureza())));
+        colData.setCellValueFactory(c -> {
+            NotaFiscal nf = c.getValue();
+            return new SimpleStringProperty(nf.getData() != null ? nf.getData().toString() : "\u2014");
+        });
 
         tabela.setItems(dados);
         tabela.getSelectionModel().setCellSelectionEnabled(true);
@@ -96,33 +101,38 @@ public class NotaFiscalController {
 
     private void carregarDados() {
         try {
-            List<NotaFiscal> lista = service.listarTodos();
-            dados.setAll(lista);
-            labelTotal.setText("Total: " + lista.size() + " notas");
+            todasAsNotas = service.listarTodas();
+            dados.setAll(todasAsNotas);
+            labelTotal.setText("Total: " + todasAsNotas.size() + " notas");
         } catch (SQLException e) {
             AlertUtil.erro("Erro ao carregar notas fiscais: " + e.getMessage());
         }
     }
 
     private void filtrar(String termo) {
-        try {
-            List<NotaFiscal> lista = (termo == null || termo.isBlank())
-                    ? service.listarTodos()
-                    : service.buscar(termo.trim());
-            dados.setAll(lista);
-            labelTotal.setText("Total: " + lista.size() + " notas");
-        } catch (SQLException e) {
-            AlertUtil.erro("Erro ao filtrar notas fiscais: " + e.getMessage());
+        if (todasAsNotas == null) return;
+        if (termo == null || termo.isBlank()) {
+            dados.setAll(todasAsNotas);
+        } else {
+            String lower = termo.toLowerCase();
+            dados.setAll(todasAsNotas.stream()
+                    .filter(nf -> nvl(nf.getNumero()).toLowerCase().contains(lower)
+                            || nvl(nf.getEntidadeNome()).toLowerCase().contains(lower)
+                            || nvl(nf.getNatureza()).toLowerCase().contains(lower))
+                    .toList());
         }
+        labelTotal.setText("Total: " + dados.size() + " notas");
     }
 
     private void mostrarDetalhes(NotaFiscal nf) {
         labelNumeroDetalhe.setText("NF " + nvl(nf.getNumero()));
-        dEmitente.setText(nvl(nf.getEmitenteNome()));
-        dDestinatario.setText(nvl(nf.getDestinatarioNome()));
-        dValor.setText(fmtM(nf.getValorTotal()));
-        dDataEmissao.setText(nvl(nf.getDataEmissao()));
-        dChave.setText(nvl(nf.getChaveAcesso()));
+        dEntidade.setText(nvl(nf.getEntidadeNome()));
+        dNatureza.setText(nvl(nf.getNatureza()));
+        dData.setText(nf.getData() != null ? nf.getData().toString() : "\u2014");
+        dOrdemCompra.setText(nvl(nf.getOrdemCompra()));
+        dTransportadora.setText(nvl(nf.getTransportadora()));
+        dPesoBruto.setText(nf.getPesoBruto() != null ? String.format("%.2f kg", nf.getPesoBruto()) : "\u2014");
+        dPesoLiquido.setText(nf.getPesoLiquido() != null ? String.format("%.2f kg", nf.getPesoLiquido()) : "\u2014");
 
         if (!painelDetalhes.isVisible()) {
             painelDetalhes.setVisible(true);
@@ -203,10 +213,9 @@ public class NotaFiscalController {
                 }
             });
         } catch (IOException e) {
-            AlertUtil.erro("Erro ao abrir formulário: " + e.getMessage());
+            AlertUtil.erro("Erro ao abrir formul\u00e1rio: " + e.getMessage());
         }
     }
 
-    private String nvl(String s) { return (s == null || s.isBlank()) ? "—" : s; }
-    private String fmtM(Double v) { return v != null ? String.format("R$ %.2f", v) : "—"; }
+    private String nvl(String s) { return (s == null || s.isBlank()) ? "\u2014" : s; }
 }

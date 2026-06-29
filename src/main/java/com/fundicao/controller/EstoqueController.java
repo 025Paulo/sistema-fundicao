@@ -1,7 +1,9 @@
 package com.fundicao.controller;
 
-import com.fundicao.model.Estoque;
+import com.fundicao.model.Produto;
+import com.fundicao.model.SaldoEstoque;
 import com.fundicao.service.EstoqueService;
+import com.fundicao.service.ProdutoService;
 import com.fundicao.util.AlertUtil;
 import javafx.animation.KeyFrame;
 import javafx.animation.KeyValue;
@@ -27,30 +29,32 @@ import java.util.List;
 public class EstoqueController {
 
     @FXML private TextField campoBusca;
-    @FXML private TableView<Estoque> tabela;
-    @FXML private TableColumn<Estoque, String> colProduto;
-    @FXML private TableColumn<Estoque, String> colQuantidade;
-    @FXML private TableColumn<Estoque, String> colUnidade;
-    @FXML private TableColumn<Estoque, String> colUltimaMovimentacao;
+    @FXML private TableView<SaldoEstoque> tabela;
+    @FXML private TableColumn<SaldoEstoque, String> colProduto;
+    @FXML private TableColumn<SaldoEstoque, String> colQuantidade;
+    @FXML private TableColumn<SaldoEstoque, String> colUltimoTipo;
+    @FXML private TableColumn<SaldoEstoque, String> colUltimaMovimentacao;
     @FXML private Label labelTotal;
 
     @FXML private VBox painelDetalhes;
     @FXML private Label labelNomeDetalhe;
     @FXML private Label dQuantidade;
-    @FXML private Label dUnidade;
+    @FXML private Label dUltimoTipo;
     @FXML private Label dUltimaMovimentacao;
 
-    private final EstoqueService service = new EstoqueService();
-    private final ObservableList<Estoque> dados = FXCollections.observableArrayList();
+    private final EstoqueService estoqueService = new EstoqueService();
+    private final ProdutoService produtoService = new ProdutoService();
+    private final ObservableList<SaldoEstoque> dados = FXCollections.observableArrayList();
+    private List<SaldoEstoque> todosOsSaldos;
 
     @FXML
     public void initialize() {
         colProduto.setCellValueFactory(c ->
-                new SimpleStringProperty(c.getValue().getProdutoNome()));
+                new SimpleStringProperty(c.getValue().getDescricao()));
         colQuantidade.setCellValueFactory(c ->
-                new SimpleStringProperty(formatQtd(c.getValue().getQuantidade())));
-        colUnidade.setCellValueFactory(c ->
-                new SimpleStringProperty(nvl(c.getValue().getUnidade())));
+                new SimpleStringProperty(String.format("%.3f", c.getValue().getSaldo())));
+        colUltimoTipo.setCellValueFactory(c ->
+                new SimpleStringProperty(nvl(c.getValue().getUltimoTipo())));
         colUltimaMovimentacao.setCellValueFactory(c ->
                 new SimpleStringProperty(nvl(c.getValue().getUltimaMovimentacao())));
 
@@ -94,31 +98,32 @@ public class EstoqueController {
 
     private void carregarDados() {
         try {
-            List<Estoque> lista = service.listarTodos();
-            dados.setAll(lista);
-            labelTotal.setText("Total: " + lista.size() + " itens");
+            todosOsSaldos = estoqueService.getSaldoTodos();
+            dados.setAll(todosOsSaldos);
+            labelTotal.setText("Total: " + todosOsSaldos.size() + " itens");
         } catch (SQLException e) {
             AlertUtil.erro("Erro ao carregar estoque: " + e.getMessage());
         }
     }
 
     private void filtrar(String termo) {
-        try {
-            List<Estoque> lista = (termo == null || termo.isBlank())
-                    ? service.listarTodos()
-                    : service.buscar(termo.trim());
-            dados.setAll(lista);
-            labelTotal.setText("Total: " + lista.size() + " itens");
-        } catch (SQLException e) {
-            AlertUtil.erro("Erro ao filtrar estoque: " + e.getMessage());
+        if (todosOsSaldos == null) return;
+        if (termo == null || termo.isBlank()) {
+            dados.setAll(todosOsSaldos);
+        } else {
+            String lower = termo.toLowerCase();
+            dados.setAll(todosOsSaldos.stream()
+                    .filter(s -> s.getDescricao().toLowerCase().contains(lower))
+                    .toList());
         }
+        labelTotal.setText("Total: " + dados.size() + " itens");
     }
 
-    private void mostrarDetalhes(Estoque e) {
-        labelNomeDetalhe.setText(e.getProdutoNome());
-        dQuantidade.setText(formatQtd(e.getQuantidade()));
-        dUnidade.setText(nvl(e.getUnidade()));
-        dUltimaMovimentacao.setText(nvl(e.getUltimaMovimentacao()));
+    private void mostrarDetalhes(SaldoEstoque s) {
+        labelNomeDetalhe.setText(s.getDescricao());
+        dQuantidade.setText(String.format("%.3f", s.getSaldo()));
+        dUltimoTipo.setText(nvl(s.getUltimoTipo()));
+        dUltimaMovimentacao.setText(nvl(s.getUltimaMovimentacao()));
 
         if (!painelDetalhes.isVisible()) {
             painelDetalhes.setVisible(true);
@@ -146,7 +151,7 @@ public class EstoqueController {
 
     @FXML
     private void movimentar() {
-        Estoque sel = tabela.getSelectionModel().getSelectedItem();
+        SaldoEstoque sel = tabela.getSelectionModel().getSelectedItem();
         if (sel == null) {
             AlertUtil.aviso("Selecione um item do estoque para movimentar.");
             return;
@@ -154,34 +159,42 @@ public class EstoqueController {
         abrirDialogMovimentacao(sel);
     }
 
-    private void abrirDialogMovimentacao(Estoque estoque) {
+    private void abrirDialogMovimentacao(SaldoEstoque saldo) {
         try {
+            // Busca o objeto Produto completo para passar ao dialog
+            Produto produto = produtoService.listarTodos().stream()
+                    .filter(p -> p.getId() == saldo.getProdutoId())
+                    .findFirst().orElse(null);
+
+            if (produto == null) {
+                AlertUtil.erro("Produto n\u00e3o encontrado.");
+                return;
+            }
+
             FXMLLoader loader = new FXMLLoader(
                     getClass().getResource("/com/fundicao/view/movimentacao-dialog.fxml"));
             VBox content = loader.load();
             MovimentacaoDialogController ctrl = loader.getController();
-            ctrl.setEstoque(estoque);
+            ctrl.setTipo("Entrada");
+            ctrl.setProduto(produto);
 
             Dialog<ButtonType> dialog = new Dialog<>();
-            dialog.setTitle("Movimentar Estoque");
+            dialog.setTitle("Movimentar Estoque \u2014 " + saldo.getDescricao());
             dialog.getDialogPane().setContent(content);
             dialog.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
 
-            dialog.showAndWait().ifPresent(result -> {
-                if (result == ButtonType.OK) {
-                    try {
-                        service.registrarMovimentacao(ctrl.getMovimentacao());
-                        carregarDados();
-                    } catch (SQLException e) {
-                        AlertUtil.erro("Erro ao registrar movimentação: " + e.getMessage());
-                    }
-                }
-            });
-        } catch (IOException e) {
-            AlertUtil.erro("Erro ao abrir formulário: " + e.getMessage());
+            // O dialog cuida do pr\u00f3prio bot\u00e3o salvar internamente,
+            // mas se usar bot\u00f5es do DialogPane precisamos checar isSalvo()
+            Button okBtn = (Button) dialog.getDialogPane().lookupButton(ButtonType.OK);
+            okBtn.setVisible(false); // o formul\u00e1rio usa seu pr\u00f3prio bot\u00e3o Salvar
+
+            dialog.showAndWait();
+            if (ctrl.isSalvo()) carregarDados();
+
+        } catch (IOException | SQLException e) {
+            AlertUtil.erro("Erro ao abrir formul\u00e1rio: " + e.getMessage());
         }
     }
 
-    private String nvl(String s) { return (s == null || s.isBlank()) ? "—" : s; }
-    private String formatQtd(Double v) { return v != null ? String.format("%.3f", v) : "—"; }
+    private String nvl(String s) { return (s == null || s.isBlank()) ? "\u2014" : s; }
 }
