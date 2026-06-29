@@ -170,6 +170,8 @@ public class EntidadeController {
                 service.excluir(selecionada.getId());
                 fecharDetalhes();
                 carregarDados();
+            } catch (IllegalStateException e) {
+                AlertUtil.aviso(e.getMessage());
             } catch (SQLException e) {
                 AlertUtil.erro("Erro ao excluir entidade: " + e.getMessage());
             }
@@ -196,6 +198,8 @@ public class EntidadeController {
                         if (entidade != null) novo.setId(entidade.getId());
                         service.salvar(novo);
                         carregarDados();
+                    } catch (IllegalArgumentException e) {
+                        AlertUtil.aviso(e.getMessage());
                     } catch (SQLException e) {
                         AlertUtil.erro("Erro ao salvar entidade: " + e.getMessage());
                     }
