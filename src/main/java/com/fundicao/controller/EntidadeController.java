@@ -6,11 +6,17 @@ import com.fundicao.util.AlertUtil;
 import javafx.animation.KeyFrame;
 import javafx.animation.KeyValue;
 import javafx.animation.Timeline;
+import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.control.*;
+import javafx.scene.input.Clipboard;
+import javafx.scene.input.ClipboardContent;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyCodeCombination;
+import javafx.scene.input.KeyCombination;
 import javafx.scene.layout.VBox;
 import javafx.util.Duration;
 
@@ -45,17 +51,19 @@ public class EntidadeController {
     @FXML
     public void initialize() {
         colRazaoSocial.setCellValueFactory(c ->
-                new javafx.beans.property.SimpleStringProperty(c.getValue().getRazaoSocial()));
+                new SimpleStringProperty(c.getValue().getRazaoSocial()));
         colTipo.setCellValueFactory(c ->
-                new javafx.beans.property.SimpleStringProperty(c.getValue().getTipo()));
+                new SimpleStringProperty(c.getValue().getTipo()));
         colCnpjCpf.setCellValueFactory(c ->
-                new javafx.beans.property.SimpleStringProperty(c.getValue().getCnpjCpf()));
+                new SimpleStringProperty(c.getValue().getCnpjCpf()));
         colTelefone.setCellValueFactory(c ->
-                new javafx.beans.property.SimpleStringProperty(c.getValue().getTelefone()));
+                new SimpleStringProperty(c.getValue().getTelefone()));
         colSituacao.setCellValueFactory(c ->
-                new javafx.beans.property.SimpleStringProperty(c.getValue().getSituacao()));
+                new SimpleStringProperty(c.getValue().getSituacao()));
 
         tabela.setItems(dados);
+        tabela.getSelectionModel().setCellSelectionEnabled(true);
+        configurarCopiarCelula(tabela);
         carregarDados();
 
         campoBusca.textProperty().addListener((obs, antigo, novo) -> filtrar(novo));
@@ -64,6 +72,36 @@ public class EntidadeController {
             if (novo != null) mostrarDetalhes(novo);
             else fecharDetalhes();
         });
+    }
+
+    private <T> void configurarCopiarCelula(TableView<T> tv) {
+        // Ctrl+C
+        tv.setOnKeyPressed(event -> {
+            if (new KeyCodeCombination(KeyCode.C, KeyCombination.CONTROL_DOWN).match(event)) {
+                copiarCelulaSelecionada(tv);
+            }
+        });
+
+        // Menu de contexto
+        MenuItem itemCopiar = new MenuItem("Copiar");
+        itemCopiar.setOnAction(e -> copiarCelulaSelecionada(tv));
+        tv.setContextMenu(new ContextMenu(itemCopiar));
+    }
+
+    private <T> void copiarCelulaSelecionada(TableView<T> tv) {
+        TablePosition<?, ?> pos = tv.getFocusModel().getFocusedCell();
+        if (pos == null || pos.getTableColumn() == null) return;
+
+        @SuppressWarnings("unchecked")
+        TableColumn<T, ?> col = (TableColumn<T, ?>) pos.getTableColumn();
+        T item = tv.getItems().get(pos.getRow());
+        Object valor = col.getCellObservableValue(item).getValue();
+
+        if (valor != null) {
+            ClipboardContent content = new ClipboardContent();
+            content.putString(valor.toString());
+            Clipboard.getSystemClipboard().setContent(content);
+        }
     }
 
     private void carregarDados() {
@@ -115,21 +153,17 @@ public class EntidadeController {
             painelDetalhes.setManaged(true);
             painelDetalhes.setOpacity(0);
             painelDetalhes.setScaleY(0.92);
-
-            Timeline tl = new Timeline(
-                    new KeyFrame(Duration.millis(180),
-                            new KeyValue(painelDetalhes.opacityProperty(), 1),
-                            new KeyValue(painelDetalhes.scaleYProperty(), 1)));
-            tl.play();
+            new Timeline(new KeyFrame(Duration.millis(180),
+                    new KeyValue(painelDetalhes.opacityProperty(), 1),
+                    new KeyValue(painelDetalhes.scaleYProperty(), 1))).play();
         }
     }
 
     @FXML
     private void fecharDetalhes() {
-        Timeline tl = new Timeline(
-                new KeyFrame(Duration.millis(150),
-                        new KeyValue(painelDetalhes.opacityProperty(), 0),
-                        new KeyValue(painelDetalhes.scaleYProperty(), 0.92)));
+        Timeline tl = new Timeline(new KeyFrame(Duration.millis(150),
+                new KeyValue(painelDetalhes.opacityProperty(), 0),
+                new KeyValue(painelDetalhes.scaleYProperty(), 0.92)));
         tl.setOnFinished(e -> {
             painelDetalhes.setVisible(false);
             painelDetalhes.setManaged(false);
@@ -143,9 +177,7 @@ public class EntidadeController {
     }
 
     @FXML
-    private void adicionar() {
-        abrirDialog(null);
-    }
+    private void adicionar() { abrirDialog(null); }
 
     @FXML
     private void alterar() {
@@ -164,7 +196,6 @@ public class EntidadeController {
             AlertUtil.aviso("Selecione uma entidade para excluir.");
             return;
         }
-
         if (AlertUtil.confirmar("Excluir \"" + selecionada.getRazaoSocial() + "\"?")) {
             try {
                 service.excluir(selecionada.getId());
@@ -205,7 +236,6 @@ public class EntidadeController {
                     }
                 }
             });
-
         } catch (IOException e) {
             AlertUtil.erro("Erro ao abrir formulário: " + e.getMessage());
         }

@@ -8,128 +8,121 @@ import javafx.animation.KeyValue;
 import javafx.animation.Timeline;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
-import javafx.scene.Scene;
 import javafx.scene.control.*;
+import javafx.scene.input.Clipboard;
+import javafx.scene.input.ClipboardContent;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyCodeCombination;
+import javafx.scene.input.KeyCombination;
 import javafx.scene.layout.VBox;
-import javafx.stage.Modality;
-import javafx.stage.Stage;
 import javafx.util.Duration;
 
 import java.io.IOException;
 import java.sql.SQLException;
-import java.util.ArrayList;
 import java.util.List;
 
 public class NotaFiscalController {
 
     @FXML private TextField campoBusca;
-    @FXML private ComboBox<String> filtroNatureza;
     @FXML private TableView<NotaFiscal> tabela;
     @FXML private TableColumn<NotaFiscal, String> colNumero;
-    @FXML private TableColumn<NotaFiscal, String> colNatureza;
-    @FXML private TableColumn<NotaFiscal, String> colData;
-    @FXML private TableColumn<NotaFiscal, String> colEntidade;
-    @FXML private TableColumn<NotaFiscal, String> colPesoLiquido;
-    @FXML private TableColumn<NotaFiscal, String> colTransportadora;
+    @FXML private TableColumn<NotaFiscal, String> colEmitente;
+    @FXML private TableColumn<NotaFiscal, String> colValor;
+    @FXML private TableColumn<NotaFiscal, String> colDataEmissao;
     @FXML private Label labelTotal;
 
     @FXML private VBox painelDetalhes;
-    @FXML private Label labelTituloDetalhe;
-    @FXML private Label dData;
-    @FXML private Label dOrdemCompra;
-    @FXML private Label dTransportadora;
-    @FXML private Label dTransporteRs;
-    @FXML private Label dPesoBruto;
-    @FXML private Label dPesoLiquido;
-    @FXML private Label dDescontoRs;
-    @FXML private Label dEntidade;
+    @FXML private Label labelNumeroDetalhe;
+    @FXML private Label dEmitente;
+    @FXML private Label dDestinatario;
+    @FXML private Label dValor;
+    @FXML private Label dDataEmissao;
+    @FXML private Label dChave;
 
     private final NotaFiscalService service = new NotaFiscalService();
-    private List<NotaFiscal> todasNotas = new ArrayList<>();
+    private final ObservableList<NotaFiscal> dados = FXCollections.observableArrayList();
 
     @FXML
     public void initialize() {
-        configurarColunas();
-        configurarFiltros();
-        configurarSelecao();
-        carregar();
-    }
-
-    private void configurarColunas() {
         colNumero.setCellValueFactory(c ->
                 new SimpleStringProperty(nvl(c.getValue().getNumero())));
-        colNatureza.setCellValueFactory(c ->
-                new SimpleStringProperty(nvl(c.getValue().getNatureza())));
-        colData.setCellValueFactory(c ->
-                new SimpleStringProperty(c.getValue().getData() != null
-                        ? c.getValue().getData().toString() : "—"));
-        colEntidade.setCellValueFactory(c ->
-                new SimpleStringProperty(nvl(c.getValue().getEntidadeNome())));
-        colPesoLiquido.setCellValueFactory(c ->
-                new SimpleStringProperty(c.getValue().getPesoLiquido() != null
-                        ? String.format("%.2f kg", c.getValue().getPesoLiquido()) : "—"));
-        colTransportadora.setCellValueFactory(c ->
-                new SimpleStringProperty(nvl(c.getValue().getTransportadora())));
-    }
+        colEmitente.setCellValueFactory(c ->
+                new SimpleStringProperty(nvl(c.getValue().getEmitenteNome())));
+        colValor.setCellValueFactory(c ->
+                new SimpleStringProperty(fmtM(c.getValue().getValorTotal())));
+        colDataEmissao.setCellValueFactory(c ->
+                new SimpleStringProperty(nvl(c.getValue().getDataEmissao())));
 
-    private void configurarFiltros() {
-        filtroNatureza.getItems().addAll("Todas", "Entrada", "Saida");
-        filtroNatureza.setValue("Todas");
-        filtroNatureza.setOnAction(e -> filtrar());
-        campoBusca.textProperty().addListener((obs, old, novo) -> filtrar());
-    }
+        tabela.setItems(dados);
+        tabela.getSelectionModel().setCellSelectionEnabled(true);
+        configurarCopiarCelula(tabela);
+        carregarDados();
 
-    private void configurarSelecao() {
-        tabela.getSelectionModel().selectedItemProperty().addListener((obs, antigo, novo) -> {
+        campoBusca.textProperty().addListener((obs, a, novo) -> filtrar(novo));
+
+        tabela.getSelectionModel().selectedItemProperty().addListener((obs, a, novo) -> {
             if (novo != null) mostrarDetalhes(novo);
             else fecharDetalhes();
         });
     }
 
-    private void carregar() {
+    private <T> void configurarCopiarCelula(TableView<T> tv) {
+        tv.setOnKeyPressed(event -> {
+            if (new KeyCodeCombination(KeyCode.C, KeyCombination.CONTROL_DOWN).match(event)) {
+                copiarCelulaSelecionada(tv);
+            }
+        });
+        MenuItem itemCopiar = new MenuItem("Copiar");
+        itemCopiar.setOnAction(e -> copiarCelulaSelecionada(tv));
+        tv.setContextMenu(new ContextMenu(itemCopiar));
+    }
+
+    private <T> void copiarCelulaSelecionada(TableView<T> tv) {
+        TablePosition<?, ?> pos = tv.getFocusModel().getFocusedCell();
+        if (pos == null || pos.getTableColumn() == null) return;
+        @SuppressWarnings("unchecked")
+        TableColumn<T, ?> col = (TableColumn<T, ?>) pos.getTableColumn();
+        T item = tv.getItems().get(pos.getRow());
+        Object valor = col.getCellObservableValue(item).getValue();
+        if (valor != null) {
+            ClipboardContent content = new ClipboardContent();
+            content.putString(valor.toString());
+            Clipboard.getSystemClipboard().setContent(content);
+        }
+    }
+
+    private void carregarDados() {
         try {
-            todasNotas = service.listarTodas();
-            filtrar();
+            List<NotaFiscal> lista = service.listarTodos();
+            dados.setAll(lista);
+            labelTotal.setText("Total: " + lista.size() + " notas");
         } catch (SQLException e) {
             AlertUtil.erro("Erro ao carregar notas fiscais: " + e.getMessage());
         }
     }
 
-    private void filtrar() {
-        String busca = campoBusca.getText() == null ? "" : campoBusca.getText().trim().toLowerCase();
-        String natureza = filtroNatureza.getValue() == null ? "Todas" : filtroNatureza.getValue();
-
-        List<NotaFiscal> filtradas = todasNotas.stream()
-                .filter(n -> {
-                    boolean matchBusca = busca.isBlank()
-                            || contem(n.getNumero(), busca)
-                            || contem(n.getEntidadeNome(), busca);
-                    boolean matchNatureza = "Todas".equals(natureza)
-                            || (n.getNatureza() != null && n.getNatureza().equalsIgnoreCase(natureza));
-                    return matchBusca && matchNatureza;
-                })
-                .toList();
-
-        tabela.setItems(FXCollections.observableArrayList(filtradas));
-        labelTotal.setText("Total: " + filtradas.size() + " nota(s)");
+    private void filtrar(String termo) {
+        try {
+            List<NotaFiscal> lista = (termo == null || termo.isBlank())
+                    ? service.listarTodos()
+                    : service.buscar(termo.trim());
+            dados.setAll(lista);
+            labelTotal.setText("Total: " + lista.size() + " notas");
+        } catch (SQLException e) {
+            AlertUtil.erro("Erro ao filtrar notas fiscais: " + e.getMessage());
+        }
     }
 
     private void mostrarDetalhes(NotaFiscal nf) {
-        labelTituloDetalhe.setText("NF " + nvl(nf.getNumero()) + "  ·  " + nvl(nf.getNatureza()));
-        dData.setText(nf.getData() != null ? nf.getData().toString() : "—");
-        dOrdemCompra.setText(nvl(nf.getOrdemCompra()));
-        dTransportadora.setText(nvl(nf.getTransportadora()));
-        dTransporteRs.setText(nf.getTransporteRs() != null
-                ? String.format("R$ %.2f", nf.getTransporteRs()) : "—");
-        dPesoBruto.setText(nf.getPesoBruto() != null
-                ? String.format("%.2f kg", nf.getPesoBruto()) : "—");
-        dPesoLiquido.setText(nf.getPesoLiquido() != null
-                ? String.format("%.2f kg", nf.getPesoLiquido()) : "—");
-        dDescontoRs.setText(nf.getDescontoRs() != null
-                ? String.format("R$ %.2f", nf.getDescontoRs()) : "—");
-        dEntidade.setText(nvl(nf.getEntidadeNome()));
+        labelNumeroDetalhe.setText("NF " + nvl(nf.getNumero()));
+        dEmitente.setText(nvl(nf.getEmitenteNome()));
+        dDestinatario.setText(nvl(nf.getDestinatarioNome()));
+        dValor.setText(fmtM(nf.getValorTotal()));
+        dDataEmissao.setText(nvl(nf.getDataEmissao()));
+        dChave.setText(nvl(nf.getChaveAcesso()));
 
         if (!painelDetalhes.isVisible()) {
             painelDetalhes.setVisible(true);
@@ -138,18 +131,15 @@ public class NotaFiscalController {
             painelDetalhes.setScaleY(0.92);
             new Timeline(new KeyFrame(Duration.millis(180),
                     new KeyValue(painelDetalhes.opacityProperty(), 1),
-                    new KeyValue(painelDetalhes.scaleYProperty(), 1)
-            )).play();
+                    new KeyValue(painelDetalhes.scaleYProperty(), 1))).play();
         }
     }
 
     @FXML
     private void fecharDetalhes() {
-        if (!painelDetalhes.isVisible()) return;
         Timeline tl = new Timeline(new KeyFrame(Duration.millis(150),
                 new KeyValue(painelDetalhes.opacityProperty(), 0),
-                new KeyValue(painelDetalhes.scaleYProperty(), 0.92)
-        ));
+                new KeyValue(painelDetalhes.scaleYProperty(), 0.92)));
         tl.setOnFinished(e -> {
             painelDetalhes.setVisible(false);
             painelDetalhes.setManaged(false);
@@ -159,53 +149,64 @@ public class NotaFiscalController {
     }
 
     @FXML
-    private void novaNota() { abrirDialog(null); }
+    private void adicionar() { abrirDialog(null); }
 
     @FXML
-    private void alterarNota() {
-        NotaFiscal s = tabela.getSelectionModel().getSelectedItem();
-        if (s == null) { AlertUtil.aviso("Selecione uma nota para alterar."); return; }
-        abrirDialog(s);
+    private void alterar() {
+        NotaFiscal sel = tabela.getSelectionModel().getSelectedItem();
+        if (sel == null) {
+            AlertUtil.aviso("Selecione uma nota fiscal para alterar.");
+            return;
+        }
+        abrirDialog(sel);
     }
 
     @FXML
-    private void excluirNota() {
-        NotaFiscal s = tabela.getSelectionModel().getSelectedItem();
-        if (s == null) { AlertUtil.aviso("Selecione uma nota para excluir."); return; }
-
-        if (AlertUtil.confirmar("Excluir a nota \"" + s.getNumero() + "\"?")) {
+    private void excluir() {
+        NotaFiscal sel = tabela.getSelectionModel().getSelectedItem();
+        if (sel == null) {
+            AlertUtil.aviso("Selecione uma nota fiscal para excluir.");
+            return;
+        }
+        if (AlertUtil.confirmar("Excluir NF \"" + nvl(sel.getNumero()) + "\"?")) {
             try {
-                service.excluir(s.getId());
+                service.excluir(sel.getId());
                 fecharDetalhes();
-                carregar();
+                carregarDados();
             } catch (SQLException e) {
-                AlertUtil.erro("Erro ao excluir nota: " + e.getMessage());
+                AlertUtil.erro("Erro ao excluir nota fiscal: " + e.getMessage());
             }
         }
     }
 
-    private void abrirDialog(NotaFiscal nota) {
+    private void abrirDialog(NotaFiscal nf) {
         try {
             FXMLLoader loader = new FXMLLoader(
-                    getClass().getResource("/com/fundicao/view/nota-fiscal-dialog.fxml"));
-            Stage stage = new Stage();
-            stage.initModality(Modality.APPLICATION_MODAL);
-            stage.setTitle(nota == null ? "Nova Nota Fiscal" : "Alterar Nota Fiscal");
-            stage.setScene(new Scene(loader.load()));
+                    getClass().getResource("/com/fundicao/view/notafiscal-dialog.fxml"));
+            VBox content = loader.load();
+            NotaFiscalDialogController ctrl = loader.getController();
+            ctrl.setNotaFiscal(nf);
 
-            NotaFiscalDialogController controller = loader.getController();
-            if (nota != null) controller.setNotaFiscal(nota);
+            Dialog<ButtonType> dialog = new Dialog<>();
+            dialog.setTitle(nf == null ? "Nova Nota Fiscal" : "Editar Nota Fiscal");
+            dialog.getDialogPane().setContent(content);
+            dialog.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
 
-            stage.showAndWait();
-            if (controller.isSalvo()) carregar();
+            dialog.showAndWait().ifPresent(result -> {
+                if (result == ButtonType.OK) {
+                    try {
+                        service.salvar(ctrl.getNotaFiscal());
+                        carregarDados();
+                    } catch (SQLException e) {
+                        AlertUtil.erro("Erro ao salvar nota fiscal: " + e.getMessage());
+                    }
+                }
+            });
         } catch (IOException e) {
-            AlertUtil.erro("Erro ao abrir janela: " + e.getMessage());
+            AlertUtil.erro("Erro ao abrir formulário: " + e.getMessage());
         }
     }
 
-    private boolean contem(String texto, String busca) {
-        return texto != null && texto.toLowerCase().contains(busca);
-    }
-
     private String nvl(String s) { return (s == null || s.isBlank()) ? "—" : s; }
+    private String fmtM(Double v) { return v != null ? String.format("R$ %.2f", v) : "—"; }
 }

@@ -13,6 +13,11 @@ import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.control.*;
+import javafx.scene.input.Clipboard;
+import javafx.scene.input.ClipboardContent;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyCodeCombination;
+import javafx.scene.input.KeyCombination;
 import javafx.scene.layout.VBox;
 import javafx.util.Duration;
 
@@ -50,9 +55,6 @@ public class ProdutoController {
                 new SimpleStringProperty(c.getValue().getDescricao()));
         colNCM.setCellValueFactory(c ->
                 new SimpleStringProperty(nvl(c.getValue().getClassificacaoFiscal())));
-
-        // ⚠️ quantidade de fornecedores exibida via campo pré-carregado
-        // para evitar query por célula, considere adicionar campo 'qtdFornecedores' no model Produto futuramente
         colFornecedores.setCellValueFactory(c -> {
             try {
                 List<ProdutoFornecedor> forn = service.listarFornecedoresPorProduto(c.getValue().getId());
@@ -74,7 +76,13 @@ public class ProdutoController {
                 new SimpleStringProperty(formatMoeda(c.getValue().getVrTotal())));
 
         tabela.setItems(dados);
+        tabela.getSelectionModel().setCellSelectionEnabled(true);
+        configurarCopiarCelula(tabela);
+
         tabelaFornecedores.setItems(dadosFornecedores);
+        tabelaFornecedores.getSelectionModel().setCellSelectionEnabled(true);
+        configurarCopiarCelula(tabelaFornecedores);
+
         carregarDados();
 
         campoBusca.textProperty().addListener((obs, a, novo) -> filtrar(novo));
@@ -83,6 +91,31 @@ public class ProdutoController {
             if (novo != null) mostrarDetalhes(novo);
             else fecharDetalhes();
         });
+    }
+
+    private <T> void configurarCopiarCelula(TableView<T> tv) {
+        tv.setOnKeyPressed(event -> {
+            if (new KeyCodeCombination(KeyCode.C, KeyCombination.CONTROL_DOWN).match(event)) {
+                copiarCelulaSelecionada(tv);
+            }
+        });
+        MenuItem itemCopiar = new MenuItem("Copiar");
+        itemCopiar.setOnAction(e -> copiarCelulaSelecionada(tv));
+        tv.setContextMenu(new ContextMenu(itemCopiar));
+    }
+
+    private <T> void copiarCelulaSelecionada(TableView<T> tv) {
+        TablePosition<?, ?> pos = tv.getFocusModel().getFocusedCell();
+        if (pos == null || pos.getTableColumn() == null) return;
+        @SuppressWarnings("unchecked")
+        TableColumn<T, ?> col = (TableColumn<T, ?>) pos.getTableColumn();
+        T item = tv.getItems().get(pos.getRow());
+        Object valor = col.getCellObservableValue(item).getValue();
+        if (valor != null) {
+            ClipboardContent content = new ClipboardContent();
+            content.putString(valor.toString());
+            Clipboard.getSystemClipboard().setContent(content);
+        }
     }
 
     private void carregarDados() {
@@ -123,8 +156,7 @@ public class ProdutoController {
                 painelDetalhes.setScaleY(0.92);
                 new Timeline(new KeyFrame(Duration.millis(180),
                         new KeyValue(painelDetalhes.opacityProperty(), 1),
-                        new KeyValue(painelDetalhes.scaleYProperty(), 1)
-                )).play();
+                        new KeyValue(painelDetalhes.scaleYProperty(), 1))).play();
             }
         } catch (SQLException e) {
             AlertUtil.erro("Erro ao carregar detalhes: " + e.getMessage());
@@ -135,8 +167,7 @@ public class ProdutoController {
     private void fecharDetalhes() {
         Timeline tl = new Timeline(new KeyFrame(Duration.millis(150),
                 new KeyValue(painelDetalhes.opacityProperty(), 0),
-                new KeyValue(painelDetalhes.scaleYProperty(), 0.92)
-        ));
+                new KeyValue(painelDetalhes.scaleYProperty(), 0.92)));
         tl.setOnFinished(e -> {
             painelDetalhes.setVisible(false);
             painelDetalhes.setManaged(false);
@@ -165,7 +196,6 @@ public class ProdutoController {
             AlertUtil.aviso("Selecione um produto para excluir.");
             return;
         }
-
         if (AlertUtil.confirmar("Excluir \"" + s.getDescricao() + "\"?")) {
             try {
                 service.excluirProduto(s.getId());
@@ -180,8 +210,7 @@ public class ProdutoController {
     private void abrirDialog(Produto produto) {
         try {
             FXMLLoader loader = new FXMLLoader(
-                    getClass().getResource("/com/fundicao/view/produto-dialog.fxml")
-            );
+                    getClass().getResource("/com/fundicao/view/produto-dialog.fxml"));
             VBox content = loader.load();
             ProdutoDialogController ctrl = loader.getController();
             ctrl.setProduto(produto);
@@ -198,8 +227,6 @@ public class ProdutoController {
                         if (produto != null) novo.setId(produto.getId());
                         service.salvarProduto(novo, ctrl.getFornecedores());
                         carregarDados();
-                    } catch (IllegalArgumentException e) {
-                        AlertUtil.aviso(e.getMessage());
                     } catch (SQLException e) {
                         AlertUtil.erro("Erro ao salvar produto: " + e.getMessage());
                     }
