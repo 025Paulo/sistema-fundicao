@@ -38,6 +38,10 @@ public class ProdutoService {
     }
 
     public int salvarProduto(Produto produto, List<ProdutoFornecedor> fornecedores) throws SQLException {
+        if (produto.getDescricao() == null || produto.getDescricao().isBlank()) {
+            throw new IllegalArgumentException("Descrição do produto é obrigatória.");
+        }
+
         int id;
 
         if (produto.getId() == 0) {

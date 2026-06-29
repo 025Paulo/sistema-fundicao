@@ -198,6 +198,8 @@ public class ProdutoController {
                         if (produto != null) novo.setId(produto.getId());
                         service.salvarProduto(novo, ctrl.getFornecedores());
                         carregarDados();
+                    } catch (IllegalArgumentException e) {
+                        AlertUtil.aviso(e.getMessage());
                     } catch (SQLException e) {
                         AlertUtil.erro("Erro ao salvar produto: " + e.getMessage());
                     }
