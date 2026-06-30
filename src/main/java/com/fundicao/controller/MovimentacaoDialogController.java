@@ -60,6 +60,14 @@ public class MovimentacaoDialogController {
         comboProduto.setValue(produto);
     }
 
+    public void setProdutoById(int produtoId) {
+        if (todosProdutos == null) return;
+        todosProdutos.stream()
+                .filter(p -> p.getId() == produtoId)
+                .findFirst()
+                .ifPresent(comboProduto::setValue);
+    }
+
     private void carregarCombos() {
         try {
             todosProdutos = produtoService.listarTodos();

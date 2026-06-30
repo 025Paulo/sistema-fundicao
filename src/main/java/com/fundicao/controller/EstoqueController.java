@@ -1,9 +1,8 @@
 package com.fundicao.controller;
 
-import com.fundicao.model.Produto;
+import com.fundicao.model.Movimentacao;
 import com.fundicao.model.SaldoEstoque;
 import com.fundicao.service.EstoqueService;
-import com.fundicao.service.ProdutoService;
 import com.fundicao.util.AlertUtil;
 import javafx.animation.KeyFrame;
 import javafx.animation.KeyValue;
@@ -13,6 +12,8 @@ import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
+import javafx.scene.Parent;
+import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.input.Clipboard;
 import javafx.scene.input.ClipboardContent;
@@ -20,6 +21,8 @@ import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyCodeCombination;
 import javafx.scene.input.KeyCombination;
 import javafx.scene.layout.VBox;
+import javafx.stage.Modality;
+import javafx.stage.Stage;
 import javafx.util.Duration;
 
 import java.io.IOException;
@@ -28,61 +31,97 @@ import java.util.List;
 
 public class EstoqueController {
 
+    // ── Tabela principal ────────────────────────────────────────────
     @FXML private TextField campoBusca;
+    @FXML private ComboBox<String> filtroTipo;
     @FXML private TableView<SaldoEstoque> tabela;
     @FXML private TableColumn<SaldoEstoque, String> colProduto;
-    @FXML private TableColumn<SaldoEstoque, String> colQuantidade;
-    @FXML private TableColumn<SaldoEstoque, String> colUltimoTipo;
-    @FXML private TableColumn<SaldoEstoque, String> colUltimaMovimentacao;
+    @FXML private TableColumn<SaldoEstoque, String> colSaldo;
+    @FXML private TableColumn<SaldoEstoque, String> colUltimaMov;
     @FXML private Label labelTotal;
 
-    @FXML private VBox painelDetalhes;
-    @FXML private Label labelNomeDetalhe;
-    @FXML private Label dQuantidade;
-    @FXML private Label dUltimoTipo;
-    @FXML private Label dUltimaMovimentacao;
+    // ── Painel de histórico ─────────────────────────────────────────
+    @FXML private VBox painelHistorico;
+    @FXML private Label labelNomeProduto;
+    @FXML private Label labelSaldoDetalhe;
+    @FXML private TableView<Movimentacao> tabelaHistorico;
+    @FXML private TableColumn<Movimentacao, String> colHistTipo;
+    @FXML private TableColumn<Movimentacao, String> colHistQtd;
+    @FXML private TableColumn<Movimentacao, String> colHistEntidade;
+    @FXML private TableColumn<Movimentacao, String> colHistData;
+    @FXML private TableColumn<Movimentacao, String> colHistValor;
+    @FXML private TableColumn<Movimentacao, String> colHistOrdem;
+    @FXML private TableColumn<Movimentacao, String> colHistObs;
 
     private final EstoqueService estoqueService = new EstoqueService();
-    private final ProdutoService produtoService = new ProdutoService();
     private final ObservableList<SaldoEstoque> dados = FXCollections.observableArrayList();
+    private final ObservableList<Movimentacao> dadosHistorico = FXCollections.observableArrayList();
     private List<SaldoEstoque> todosOsSaldos;
+    private SaldoEstoque saldoAtual;
 
     @FXML
     public void initialize() {
+        // Tabela principal
         colProduto.setCellValueFactory(c ->
                 new SimpleStringProperty(c.getValue().getDescricao()));
-        colQuantidade.setCellValueFactory(c ->
-                new SimpleStringProperty(String.format("%.3f", c.getValue().getSaldo())));
-        colUltimoTipo.setCellValueFactory(c ->
-                new SimpleStringProperty(nvl(c.getValue().getUltimoTipo())));
-        colUltimaMovimentacao.setCellValueFactory(c ->
+        colSaldo.setCellValueFactory(c ->
+                new SimpleStringProperty(String.format("%.3f kg", c.getValue().getSaldo())));
+        colUltimaMov.setCellValueFactory(c ->
                 new SimpleStringProperty(nvl(c.getValue().getUltimaMovimentacao())));
 
         tabela.setItems(dados);
         tabela.getSelectionModel().setCellSelectionEnabled(true);
-        configurarCopiarCelula(tabela);
+        configurarCopiar(tabela);
+
+        // Tabela de histórico
+        colHistTipo.setCellValueFactory(c ->
+                new SimpleStringProperty(nvl(c.getValue().getTipo())));
+        colHistQtd.setCellValueFactory(c ->
+                new SimpleStringProperty(String.format("%.3f", c.getValue().getQuantidade())));
+        colHistEntidade.setCellValueFactory(c ->
+                new SimpleStringProperty(nvl(c.getValue().getEntidadeNome())));
+        colHistData.setCellValueFactory(c ->
+                new SimpleStringProperty(
+                        c.getValue().getDataMovimentacao() != null
+                                ? c.getValue().getDataMovimentacao().toString() : "—"));
+        colHistValor.setCellValueFactory(c ->
+                new SimpleStringProperty(
+                        c.getValue().getValorUnitario() != null
+                                ? String.format("R$ %.2f", c.getValue().getValorUnitario()) : "—"));
+        colHistOrdem.setCellValueFactory(c ->
+                new SimpleStringProperty(nvl(c.getValue().getOrdemCompra())));
+        colHistObs.setCellValueFactory(c ->
+                new SimpleStringProperty(nvl(c.getValue().getObservacoes())));
+
+        tabelaHistorico.setItems(dadosHistorico);
+        configurarCopiar(tabelaHistorico);
+
+        // Filtro de tipo
+        filtroTipo.setItems(FXCollections.observableArrayList("Todos", "Entrada", "Saída"));
+        filtroTipo.setValue("Todos");
+        filtroTipo.valueProperty().addListener((obs, a, novo) -> filtrar(campoBusca.getText()));
+
         carregarDados();
 
         campoBusca.textProperty().addListener((obs, a, novo) -> filtrar(novo));
 
         tabela.getSelectionModel().selectedItemProperty().addListener((obs, a, novo) -> {
-            if (novo != null) mostrarDetalhes(novo);
-            else fecharDetalhes();
+            if (novo != null) mostrarHistorico(novo);
+            else fecharHistorico();
         });
     }
 
-    private <T> void configurarCopiarCelula(TableView<T> tv) {
+    private <T> void configurarCopiar(TableView<T> tv) {
         tv.setOnKeyPressed(event -> {
-            if (new KeyCodeCombination(KeyCode.C, KeyCombination.CONTROL_DOWN).match(event)) {
-                copiarCelulaSelecionada(tv);
-            }
+            if (new KeyCodeCombination(KeyCode.C, KeyCombination.CONTROL_DOWN).match(event))
+                copiarCelula(tv);
         });
-        MenuItem itemCopiar = new MenuItem("Copiar");
-        itemCopiar.setOnAction(e -> copiarCelulaSelecionada(tv));
-        tv.setContextMenu(new ContextMenu(itemCopiar));
+        MenuItem item = new MenuItem("Copiar");
+        item.setOnAction(e -> copiarCelula(tv));
+        tv.setContextMenu(new ContextMenu(item));
     }
 
-    private <T> void copiarCelulaSelecionada(TableView<T> tv) {
+    private <T> void copiarCelula(TableView<T> tv) {
         TablePosition<?, ?> pos = tv.getFocusModel().getFocusedCell();
         if (pos == null || pos.getTableColumn() == null) return;
         @SuppressWarnings("unchecked")
@@ -90,9 +129,9 @@ public class EstoqueController {
         T item = tv.getItems().get(pos.getRow());
         Object valor = col.getCellObservableValue(item).getValue();
         if (valor != null) {
-            ClipboardContent content = new ClipboardContent();
-            content.putString(valor.toString());
-            Clipboard.getSystemClipboard().setContent(content);
+            ClipboardContent cc = new ClipboardContent();
+            cc.putString(valor.toString());
+            Clipboard.getSystemClipboard().setContent(cc);
         }
     }
 
@@ -100,7 +139,7 @@ public class EstoqueController {
         try {
             todosOsSaldos = estoqueService.getSaldoTodos();
             dados.setAll(todosOsSaldos);
-            labelTotal.setText("Total: " + todosOsSaldos.size() + " itens");
+            labelTotal.setText("Total: " + todosOsSaldos.size() + " produtos");
         } catch (SQLException e) {
             AlertUtil.erro("Erro ao carregar estoque: " + e.getMessage());
         }
@@ -108,93 +147,105 @@ public class EstoqueController {
 
     private void filtrar(String termo) {
         if (todosOsSaldos == null) return;
-        if (termo == null || termo.isBlank()) {
-            dados.setAll(todosOsSaldos);
-        } else {
-            String lower = termo.toLowerCase();
-            dados.setAll(todosOsSaldos.stream()
-                    .filter(s -> s.getDescricao().toLowerCase().contains(lower))
-                    .toList());
-        }
-        labelTotal.setText("Total: " + dados.size() + " itens");
+        String lower = (termo == null) ? "" : termo.toLowerCase();
+        String tipo = filtroTipo.getValue();
+        dados.setAll(todosOsSaldos.stream()
+                .filter(s -> lower.isBlank() || s.getDescricao().toLowerCase().contains(lower))
+                .filter(s -> "Todos".equals(tipo) || tipo == null
+                        || tipo.equalsIgnoreCase(nvl(s.getUltimoTipo())))
+                .toList());
+        labelTotal.setText("Total: " + dados.size() + " produtos");
     }
 
-    private void mostrarDetalhes(SaldoEstoque s) {
-        labelNomeDetalhe.setText(s.getDescricao());
-        dQuantidade.setText(String.format("%.3f", s.getSaldo()));
-        dUltimoTipo.setText(nvl(s.getUltimoTipo()));
-        dUltimaMovimentacao.setText(nvl(s.getUltimaMovimentacao()));
-
-        if (!painelDetalhes.isVisible()) {
-            painelDetalhes.setVisible(true);
-            painelDetalhes.setManaged(true);
-            painelDetalhes.setOpacity(0);
-            painelDetalhes.setScaleY(0.92);
+    private void mostrarHistorico(SaldoEstoque s) {
+        saldoAtual = s;
+        labelNomeProduto.setText(s.getDescricao());
+        labelSaldoDetalhe.setText(String.format("%.3f kg", s.getSaldo()));
+        try {
+            List<Movimentacao> hist = estoqueService.listarMovimentacoes(s.getProdutoId());
+            dadosHistorico.setAll(hist);
+        } catch (SQLException e) {
+            AlertUtil.erro("Erro ao carregar histórico: " + e.getMessage());
+        }
+        if (!painelHistorico.isVisible()) {
+            painelHistorico.setVisible(true);
+            painelHistorico.setManaged(true);
+            painelHistorico.setOpacity(0);
+            painelHistorico.setScaleY(0.92);
             new Timeline(new KeyFrame(Duration.millis(180),
-                    new KeyValue(painelDetalhes.opacityProperty(), 1),
-                    new KeyValue(painelDetalhes.scaleYProperty(), 1))).play();
+                    new KeyValue(painelHistorico.opacityProperty(), 1),
+                    new KeyValue(painelHistorico.scaleYProperty(), 1))).play();
         }
     }
 
     @FXML
-    private void fecharDetalhes() {
+    private void fecharHistorico() {
         Timeline tl = new Timeline(new KeyFrame(Duration.millis(150),
-                new KeyValue(painelDetalhes.opacityProperty(), 0),
-                new KeyValue(painelDetalhes.scaleYProperty(), 0.92)));
+                new KeyValue(painelHistorico.opacityProperty(), 0),
+                new KeyValue(painelHistorico.scaleYProperty(), 0.92)));
         tl.setOnFinished(e -> {
-            painelDetalhes.setVisible(false);
-            painelDetalhes.setManaged(false);
+            painelHistorico.setVisible(false);
+            painelHistorico.setManaged(false);
             tabela.getSelectionModel().clearSelection();
+            saldoAtual = null;
         });
         tl.play();
     }
 
     @FXML
-    private void movimentar() {
-        SaldoEstoque sel = tabela.getSelectionModel().getSelectedItem();
-        if (sel == null) {
-            AlertUtil.aviso("Selecione um item do estoque para movimentar.");
-            return;
-        }
-        abrirDialogMovimentacao(sel);
-    }
+    private void novaEntrada() { abrirDialog("Entrada"); }
 
-    private void abrirDialogMovimentacao(SaldoEstoque saldo) {
+    @FXML
+    private void novaSaida() { abrirDialog("Saida"); }
+
+    private void abrirDialog(String tipo) {
         try {
-            // Busca o objeto Produto completo para passar ao dialog
-            Produto produto = produtoService.listarTodos().stream()
-                    .filter(p -> p.getId() == saldo.getProdutoId())
-                    .findFirst().orElse(null);
-
-            if (produto == null) {
-                AlertUtil.erro("Produto n\u00e3o encontrado.");
-                return;
-            }
-
             FXMLLoader loader = new FXMLLoader(
                     getClass().getResource("/com/fundicao/view/movimentacao-dialog.fxml"));
-            VBox content = loader.load();
+            Parent root = loader.load();
             MovimentacaoDialogController ctrl = loader.getController();
-            ctrl.setTipo("Entrada");
-            ctrl.setProduto(produto);
+            ctrl.setTipo(tipo);
 
-            Dialog<ButtonType> dialog = new Dialog<>();
-            dialog.setTitle("Movimentar Estoque \u2014 " + saldo.getDescricao());
-            dialog.getDialogPane().setContent(content);
-            dialog.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
+            if (saldoAtual != null) {
+                ctrl.setProdutoById(saldoAtual.getProdutoId());
+            }
 
-            // O dialog cuida do pr\u00f3prio bot\u00e3o salvar internamente,
-            // mas se usar bot\u00f5es do DialogPane precisamos checar isSalvo()
-            Button okBtn = (Button) dialog.getDialogPane().lookupButton(ButtonType.OK);
-            okBtn.setVisible(false); // o formul\u00e1rio usa seu pr\u00f3prio bot\u00e3o Salvar
+            Stage stage = new Stage();
+            stage.setTitle(tipo.equals("Entrada") ? "Nova Entrada" : "Nova Saída");
+            stage.setScene(new Scene(root));
+            stage.initModality(Modality.APPLICATION_MODAL);
+            stage.showAndWait();
 
-            dialog.showAndWait();
             if (ctrl.isSalvo()) carregarDados();
 
-        } catch (IOException | SQLException e) {
-            AlertUtil.erro("Erro ao abrir formul\u00e1rio: " + e.getMessage());
+        } catch (IOException e) {
+            AlertUtil.erro("Erro ao abrir formulário: " + e.getMessage());
         }
     }
 
-    private String nvl(String s) { return (s == null || s.isBlank()) ? "\u2014" : s; }
+    @FXML
+    private void excluirMovimentacao() {
+        Movimentacao sel = tabelaHistorico.getSelectionModel().getSelectedItem();
+        if (sel == null) {
+            AlertUtil.aviso("Selecione uma movimentação no histórico para excluir.");
+            return;
+        }
+        if (AlertUtil.confirmar("Excluir movimentação de " +
+                String.format("%.3f kg", sel.getQuantidade()) + " (" + nvl(sel.getTipo()) + ")?")) {
+            try {
+                estoqueService.excluir(sel.getId());
+                carregarDados();
+                if (saldoAtual != null) {
+                    todosOsSaldos.stream()
+                            .filter(s -> s.getProdutoId() == saldoAtual.getProdutoId())
+                            .findFirst()
+                            .ifPresentOrElse(this::mostrarHistorico, this::fecharHistorico);
+                }
+            } catch (SQLException e) {
+                AlertUtil.erro("Erro ao excluir movimentação: " + e.getMessage());
+            }
+        }
+    }
+
+    private String nvl(String s) { return (s == null || s.isBlank()) ? "—" : s; }
 }
