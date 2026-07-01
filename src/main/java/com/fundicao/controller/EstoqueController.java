@@ -20,6 +20,7 @@ import javafx.scene.input.ClipboardContent;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyCodeCombination;
 import javafx.scene.input.KeyCombination;
+import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.VBox;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
@@ -31,7 +32,6 @@ import java.util.List;
 
 public class EstoqueController {
 
-    // ── Tabela principal ────────────────────────────────────────────
     @FXML private TextField campoBusca;
     @FXML private ComboBox<String> filtroTipo;
     @FXML private TableView<SaldoEstoque> tabela;
@@ -40,7 +40,6 @@ public class EstoqueController {
     @FXML private TableColumn<SaldoEstoque, String> colUltimaMov;
     @FXML private Label labelTotal;
 
-    // ── Painel de histórico ─────────────────────────────────────────
     @FXML private VBox painelHistorico;
     @FXML private Label labelNomeProduto;
     @FXML private Label labelSaldoDetalhe;
@@ -61,7 +60,6 @@ public class EstoqueController {
 
     @FXML
     public void initialize() {
-        // Tabela principal
         colProduto.setCellValueFactory(c ->
                 new SimpleStringProperty(c.getValue().getDescricao()));
         colSaldo.setCellValueFactory(c ->
@@ -74,7 +72,6 @@ public class EstoqueController {
         tabelaHistorico.getSelectionModel().setSelectionMode(SelectionMode.SINGLE);
         configurarCopiar(tabela);
 
-        // Tabela de histórico
         colHistTipo.setCellValueFactory(c ->
                 new SimpleStringProperty(nvl(c.getValue().getTipo())));
         colHistQtd.setCellValueFactory(c ->
@@ -97,7 +94,6 @@ public class EstoqueController {
         tabelaHistorico.setItems(dadosHistorico);
         configurarCopiar(tabelaHistorico);
 
-        // Filtro de tipo
         filtroTipo.setItems(FXCollections.observableArrayList("Todos", "Entrada", "Saída"));
         filtroTipo.setValue("Todos");
         filtroTipo.valueProperty().addListener((obs, a, novo) -> filtrar(campoBusca.getText()));
@@ -106,14 +102,13 @@ public class EstoqueController {
 
         campoBusca.textProperty().addListener((obs, a, novo) -> filtrar(novo));
 
-        // Ao clicar em qualquer linha da tabela principal abre o histórico.
-        // Usando setOnMouseClicked garante que re-clique no mesmo item também dispara.
-        tabela.setOnMouseClicked(event -> {
+        // addEventHandler nunca sobrescreve handlers existentes (diferente de setOnMouseClicked)
+        tabela.addEventHandler(MouseEvent.MOUSE_CLICKED, event -> {
             SaldoEstoque sel = tabela.getSelectionModel().getSelectedItem();
             if (sel != null) mostrarHistorico(sel);
         });
 
-        // Listener de teclado (navegação por setas também abre o histórico)
+        // listener para navegacao por teclado (setas)
         tabela.getSelectionModel().selectedItemProperty().addListener((obs, antigo, novo) -> {
             if (novo != null) mostrarHistorico(novo);
             else fecharHistorico();
@@ -121,7 +116,7 @@ public class EstoqueController {
     }
 
     private <T> void configurarCopiar(TableView<T> tv) {
-        tv.setOnKeyPressed(event -> {
+        tv.addEventHandler(javafx.scene.input.KeyEvent.KEY_PRESSED, event -> {
             if (new KeyCodeCombination(KeyCode.C, KeyCombination.CONTROL_DOWN).match(event))
                 copiarCelula(tv);
         });
@@ -223,7 +218,6 @@ public class EstoqueController {
             stage.showAndWait();
             if (ctrl.isSalvo()) {
                 carregarDados();
-                // Reabre o histórico do mesmo produto após salvar
                 if (saldoAtual != null) {
                     int idAtual = saldoAtual.getProdutoId();
                     todosOsSaldos.stream()
@@ -254,7 +248,6 @@ public class EstoqueController {
                 estoqueService.excluir(sel.getId());
                 int idAtual = saldoAtual != null ? saldoAtual.getProdutoId() : -1;
                 carregarDados();
-                // Reabre o histórico do mesmo produto após excluir
                 if (idAtual > 0) {
                     todosOsSaldos.stream()
                             .filter(s -> s.getProdutoId() == idAtual)
