@@ -140,6 +140,26 @@ public class ProdutoDialogController {
         }
     }
 
+    private boolean salvo = false;
+
+    public boolean isSalvo() { return salvo; }
+
+    @FXML
+    private void salvar() {
+        if (campoDescricao.getText() == null || campoDescricao.getText().isBlank()) {
+            AlertUtil.aviso("Descrição é obrigatória.");
+            return;
+        }
+        salvo = true;
+        // Fecha o Stage pai
+        campoDescricao.getScene().getWindow().hide();
+    }
+
+    @FXML
+    private void cancelar() {
+        campoDescricao.getScene().getWindow().hide();
+    }
+
     private Double parseDouble(String s) {
         try { return (s == null || s.isBlank()) ? null : Double.parseDouble(s.replace(",", ".")); }
         catch (NumberFormatException e) { return null; }

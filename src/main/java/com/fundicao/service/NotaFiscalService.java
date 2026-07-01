@@ -23,7 +23,7 @@ public class NotaFiscalService {
     }
 
     public int salvar(NotaFiscal notaFiscal) throws SQLException {
-        if (notaFiscal.getId() == 0) {
+        if (notaFiscal.getId() == null || notaFiscal.getId() == 0) {
             return notaFiscalDAO.inserir(notaFiscal);
         } else {
             notaFiscalDAO.atualizar(notaFiscal);

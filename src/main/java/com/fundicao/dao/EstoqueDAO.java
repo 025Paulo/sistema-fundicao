@@ -57,23 +57,23 @@ public class EstoqueDAO {
 
     public List<SaldoEstoque> getSaldoTodos() throws SQLException {
         String sql = """
-            SELECT p.id, p.descricao,
-                   SUM(CASE WHEN em.tipo='Entrada' THEN em.quantidade ELSE -em.quantidade END) AS saldo,
-                   MAX(em.data_movimentacao) AS ultima_mov,
-                   (SELECT tipo FROM estoque_movimentacoes
-                    WHERE produto_id = p.id
-                    ORDER BY data_movimentacao DESC LIMIT 1) AS ultimo_tipo
-            FROM produtos p
-            INNER JOIN estoque_movimentacoes em ON em.produto_id = p.id
-            GROUP BY p.id, p.descricao
-            ORDER BY p.descricao
-        """;
+        SELECT p.id AS produto_id, p.descricao,
+               SUM(CASE WHEN em.tipo='Entrada' THEN em.quantidade ELSE -em.quantidade END) AS saldo,
+               MAX(em.data_movimentacao) AS ultima_mov,
+               (SELECT tipo FROM estoque_movimentacoes
+                WHERE produto_id = p.id
+                ORDER BY data_movimentacao DESC LIMIT 1) AS ultimo_tipo
+        FROM produtos p
+        INNER JOIN estoque_movimentacoes em ON em.produto_id = p.id
+        GROUP BY p.id, p.descricao
+        ORDER BY p.descricao
+    """;
         List<SaldoEstoque> dados = new ArrayList<>();
         try (PreparedStatement ps = getConnection().prepareStatement(sql);
              ResultSet rs = ps.executeQuery()) {
             while (rs.next()) {
                 dados.add(new SaldoEstoque(
-                        rs.getInt("id"),
+                        rs.getInt("produto_id"),   // ← era rs.getInt("id") — BUG!
                         rs.getString("descricao"),
                         rs.getDouble("saldo"),
                         rs.getString("ultima_mov"),

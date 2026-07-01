@@ -12,6 +12,8 @@ import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
+import javafx.scene.Parent;
+import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.input.Clipboard;
 import javafx.scene.input.ClipboardContent;
@@ -19,6 +21,8 @@ import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyCodeCombination;
 import javafx.scene.input.KeyCombination;
 import javafx.scene.layout.VBox;
+import javafx.stage.Modality;
+import javafx.stage.Stage;
 import javafx.util.Duration;
 
 import java.io.IOException;
@@ -211,27 +215,26 @@ public class ProdutoController {
         try {
             FXMLLoader loader = new FXMLLoader(
                     getClass().getResource("/com/fundicao/view/produto-dialog.fxml"));
-            VBox content = loader.load();
+            Parent root = loader.load();
             ProdutoDialogController ctrl = loader.getController();
-            ctrl.setProduto(produto);
+            if (produto != null) ctrl.setProduto(produto);
 
-            Dialog<ButtonType> dialog = new Dialog<>();
-            dialog.setTitle(produto == null ? "Novo Produto" : "Editar Produto");
-            dialog.getDialogPane().setContent(content);
-            dialog.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
+            Stage stage = new Stage();
+            stage.setTitle(produto == null ? "Novo Produto" : "Editar Produto");
+            stage.setScene(new Scene(root));
+            stage.initModality(Modality.APPLICATION_MODAL);
+            stage.showAndWait();
 
-            dialog.showAndWait().ifPresent(result -> {
-                if (result == ButtonType.OK) {
-                    try {
-                        Produto novo = ctrl.getProduto();
-                        if (produto != null) novo.setId(produto.getId());
-                        service.salvarProduto(novo, ctrl.getFornecedores());
-                        carregarDados();
-                    } catch (SQLException e) {
-                        AlertUtil.erro("Erro ao salvar produto: " + e.getMessage());
-                    }
+            if (ctrl.isSalvo()) {
+                try {
+                    Produto novo = ctrl.getProduto();
+                    if (produto != null) novo.setId(produto.getId());
+                    service.salvarProduto(novo, ctrl.getFornecedores());
+                    carregarDados();
+                } catch (SQLException e) {
+                    AlertUtil.erro("Erro ao salvar produto: " + e.getMessage());
                 }
-            });
+            }
         } catch (IOException e) {
             AlertUtil.erro("Erro ao abrir formulário: " + e.getMessage());
         }

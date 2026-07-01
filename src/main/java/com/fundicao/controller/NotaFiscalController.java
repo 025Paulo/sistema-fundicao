@@ -220,7 +220,7 @@ public class NotaFiscalController {
     private void abrirDialog(NotaFiscal nf) {
         try {
             FXMLLoader loader = new FXMLLoader(
-                    getClass().getResource("/com/fundicao/view/notafiscal-dialog.fxml"));
+                    getClass().getResource("/com/fundicao/view/nota-fiscal-dialog.fxml"));
             Parent root = loader.load();
             NotaFiscalDialogController ctrl = loader.getController();
             if (nf != null) ctrl.setNotaFiscal(nf);

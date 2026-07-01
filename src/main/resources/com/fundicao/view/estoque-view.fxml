@@ -86,7 +86,8 @@
         <Label fx:id="labelTotal" text="Total: 0 produtos"
                style="-fx-font-size: 12px; -fx-text-fill: #6B7280;"/>
         <Region HBox.hgrow="ALWAYS"/>
-        <Button text="Excluir movimentação" styleClass="btn-danger" onAction="#excluirMovimentacao"/>
+        <Button fx:id="btnExcluirMovimentacao" text="Excluir movimentação"
+                styleClass="btn-danger" onAction="#excluirMovimentacao"/>
     </HBox>
 
 </VBox>

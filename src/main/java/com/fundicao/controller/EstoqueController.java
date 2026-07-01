@@ -52,6 +52,7 @@ public class EstoqueController {
     @FXML private TableColumn<Movimentacao, String> colHistValor;
     @FXML private TableColumn<Movimentacao, String> colHistOrdem;
     @FXML private TableColumn<Movimentacao, String> colHistObs;
+    @FXML private Button btnExcluirMovimentacao;
 
     private final EstoqueService estoqueService = new EstoqueService();
     private final ObservableList<SaldoEstoque> dados = FXCollections.observableArrayList();
@@ -70,7 +71,8 @@ public class EstoqueController {
                 new SimpleStringProperty(nvl(c.getValue().getUltimaMovimentacao())));
 
         tabela.setItems(dados);
-        tabela.getSelectionModel().setCellSelectionEnabled(true);
+        tabela.getSelectionModel().setSelectionMode(SelectionMode.SINGLE);
+        tabelaHistorico.getSelectionModel().setSelectionMode(SelectionMode.SINGLE);
         configurarCopiar(tabela);
 
         // Tabela de histórico
@@ -94,6 +96,9 @@ public class EstoqueController {
                 new SimpleStringProperty(nvl(c.getValue().getObservacoes())));
 
         tabelaHistorico.setItems(dadosHistorico);
+        btnExcluirMovimentacao.disableProperty().bind(
+                tabelaHistorico.getSelectionModel().selectedItemProperty().isNull()
+        );
         configurarCopiar(tabelaHistorico);
 
         // Filtro de tipo
@@ -158,6 +163,7 @@ public class EstoqueController {
     }
 
     private void mostrarHistorico(SaldoEstoque s) {
+        System.out.println("produtoId = " + s.getProdutoId());
         saldoAtual = s;
         labelNomeProduto.setText(s.getDescricao());
         labelSaldoDetalhe.setText(String.format("%.3f kg", s.getSaldo()));
