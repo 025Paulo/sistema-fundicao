@@ -6,9 +6,6 @@ import com.fundicao.util.DatabaseManager;
 
 import java.sql.*;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
-import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -88,7 +85,10 @@ public class EstoqueDAO {
 
     public List<Movimentacao> getHistorico(int produtoId) throws SQLException {
         String sql = """
-            SELECT em.*, e.razao_social AS entidade_nome
+            SELECT em.id, em.produto_id, em.tipo, em.quantidade,
+                   em.data_movimentacao, em.nota_id, em.valor_unitario,
+                   em.entidade_id, em.transportadora, em.ordem_compra, em.observacoes,
+                   e.razao_social AS entidade_nome
             FROM estoque_movimentacoes em
             LEFT JOIN entidades e ON e.id = em.entidade_id
             WHERE em.produto_id = ?
@@ -139,13 +139,6 @@ public class EstoqueDAO {
         m.setOrdemCompra(rs.getString("ordem_compra"));
         m.setObservacoes(rs.getString("observacoes"));
 
-        String criadoEm = rs.getString("criado_em");
-        if (criadoEm != null) {
-            try {
-                m.setCriadoEm(LocalDateTime.parse(criadoEm.replace(" ", "T")));
-            } catch (DateTimeParseException ignored) {}
-        }
-
         return m;
     }
 
@@ -157,11 +150,9 @@ public class EstoqueDAO {
      */
     private LocalDate parseData(String data) {
         String s = data.trim();
-        // Apenas data: yyyy-MM-dd
         if (s.length() == 10) {
             return LocalDate.parse(s);
         }
-        // Com hora: pega apenas os primeiros 10 caracteres
         return LocalDate.parse(s.substring(0, 10));
     }
 }
