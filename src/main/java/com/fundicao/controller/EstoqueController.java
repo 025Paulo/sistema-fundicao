@@ -96,9 +96,13 @@ public class EstoqueController {
                 new SimpleStringProperty(nvl(c.getValue().getObservacoes())));
 
         tabelaHistorico.setItems(dadosHistorico);
-        btnExcluirMovimentacao.disableProperty().bind(
-                tabelaHistorico.getSelectionModel().selectedItemProperty().isNull()
+
+        // Listener manual — mais confiável que bind quando o painel começa hidden
+        btnExcluirMovimentacao.setDisable(true);
+        tabelaHistorico.getSelectionModel().selectedItemProperty().addListener(
+                (obs, antigo, novo) -> btnExcluirMovimentacao.setDisable(novo == null)
         );
+
         configurarCopiar(tabelaHistorico);
 
         // Filtro de tipo
@@ -163,8 +167,11 @@ public class EstoqueController {
     }
 
     private void mostrarHistorico(SaldoEstoque s) {
-        System.out.println("produtoId = " + s.getProdutoId());
         saldoAtual = s;
+        // Reseta o botão ao trocar de produto
+        btnExcluirMovimentacao.setDisable(true);
+        tabelaHistorico.getSelectionModel().clearSelection();
+
         labelNomeProduto.setText(s.getDescricao());
         labelSaldoDetalhe.setText(String.format("%.3f kg", s.getSaldo()));
         try {
@@ -194,6 +201,7 @@ public class EstoqueController {
             painelHistorico.setManaged(false);
             tabela.getSelectionModel().clearSelection();
             saldoAtual = null;
+            btnExcluirMovimentacao.setDisable(true);
         });
         tl.play();
     }
