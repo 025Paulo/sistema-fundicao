@@ -59,6 +59,8 @@ public class EstoqueController {
     private final ObservableList<Movimentacao> dadosHistorico = FXCollections.observableArrayList();
     private List<SaldoEstoque> todosOsSaldos;
     private SaldoEstoque saldoAtual;
+    // Guarda a movimentacao selecionada igual ao ProdutoController guarda o produto
+    private Movimentacao movimentacaoSelecionada;
 
     @FXML
     public void initialize() {
@@ -97,11 +99,12 @@ public class EstoqueController {
 
         tabelaHistorico.setItems(dadosHistorico);
 
-        // Listener manual — mais confiável que bind quando o painel começa hidden
+        // Salva a movimentacao selecionada em variavel — nao depende de foco na tabela (igual ProdutoController)
         btnExcluirMovimentacao.setDisable(true);
-        tabelaHistorico.getSelectionModel().selectedItemProperty().addListener(
-                (obs, antigo, novo) -> btnExcluirMovimentacao.setDisable(novo == null)
-        );
+        tabelaHistorico.getSelectionModel().selectedItemProperty().addListener((obs, antigo, novo) -> {
+            movimentacaoSelecionada = novo;
+            btnExcluirMovimentacao.setDisable(novo == null);
+        });
 
         configurarCopiar(tabelaHistorico);
 
@@ -168,7 +171,7 @@ public class EstoqueController {
 
     private void mostrarHistorico(SaldoEstoque s) {
         saldoAtual = s;
-        // Reseta o botão ao trocar de produto
+        movimentacaoSelecionada = null;
         btnExcluirMovimentacao.setDisable(true);
         tabelaHistorico.getSelectionModel().clearSelection();
 
@@ -201,6 +204,7 @@ public class EstoqueController {
             painelHistorico.setManaged(false);
             tabela.getSelectionModel().clearSelection();
             saldoAtual = null;
+            movimentacaoSelecionada = null;
             btnExcluirMovimentacao.setDisable(true);
         });
         tl.play();
@@ -239,15 +243,18 @@ public class EstoqueController {
 
     @FXML
     private void excluirMovimentacao() {
-        Movimentacao sel = tabelaHistorico.getSelectionModel().getSelectedItem();
-        if (sel == null) {
+        // Usa a variavel salva — nao depende de foco na tabela (igual ProdutoController)
+        if (movimentacaoSelecionada == null) {
             AlertUtil.aviso("Selecione uma movimentação no histórico para excluir.");
             return;
         }
         if (AlertUtil.confirmar("Excluir movimentação de " +
-                String.format("%.3f kg", sel.getQuantidade()) + " (" + nvl(sel.getTipo()) + ")?")) {
+                String.format("%.3f kg", movimentacaoSelecionada.getQuantidade()) +
+                " (" + nvl(movimentacaoSelecionada.getTipo()) + ")?")) {
             try {
-                estoqueService.excluir(sel.getId());
+                estoqueService.excluir(movimentacaoSelecionada.getId());
+                movimentacaoSelecionada = null;
+                btnExcluirMovimentacao.setDisable(true);
                 carregarDados();
                 if (saldoAtual != null) {
                     todosOsSaldos.stream()
