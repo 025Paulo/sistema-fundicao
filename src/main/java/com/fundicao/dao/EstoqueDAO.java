@@ -7,6 +7,8 @@ import com.fundicao.util.DatabaseManager;
 import java.sql.*;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -73,7 +75,7 @@ public class EstoqueDAO {
              ResultSet rs = ps.executeQuery()) {
             while (rs.next()) {
                 dados.add(new SaldoEstoque(
-                        rs.getInt("produto_id"),   // ← era rs.getInt("id") — BUG!
+                        rs.getInt("produto_id"),
                         rs.getString("descricao"),
                         rs.getDouble("saldo"),
                         rs.getString("ultima_mov"),
@@ -119,7 +121,9 @@ public class EstoqueDAO {
         m.setQuantidade(rs.getDouble("quantidade"));
 
         String data = rs.getString("data_movimentacao");
-        if (data != null) m.setDataMovimentacao(LocalDate.parse(data));
+        if (data != null) {
+            m.setDataMovimentacao(parseData(data));
+        }
 
         int notaId = rs.getInt("nota_id");
         if (!rs.wasNull()) m.setNotaId(notaId);
@@ -136,8 +140,28 @@ public class EstoqueDAO {
         m.setObservacoes(rs.getString("observacoes"));
 
         String criadoEm = rs.getString("criado_em");
-        if (criadoEm != null) m.setCriadoEm(LocalDateTime.parse(criadoEm.replace(" ", "T")));
+        if (criadoEm != null) {
+            try {
+                m.setCriadoEm(LocalDateTime.parse(criadoEm.replace(" ", "T")));
+            } catch (DateTimeParseException ignored) {}
+        }
 
         return m;
+    }
+
+    /**
+     * Converte string de data do banco, aceitando:
+     *   "2026-07-01"           (LocalDate puro)
+     *   "2026-07-01 00:00:00"  (SQLite DATETIME sem T)
+     *   "2026-07-01T00:00:00"  (ISO com T)
+     */
+    private LocalDate parseData(String data) {
+        String s = data.trim();
+        // Apenas data: yyyy-MM-dd
+        if (s.length() == 10) {
+            return LocalDate.parse(s);
+        }
+        // Com hora: pega apenas os primeiros 10 caracteres
+        return LocalDate.parse(s.substring(0, 10));
     }
 }
