@@ -77,21 +77,18 @@
                                style="-fx-text-fill: #9CA3AF; -fx-font-size: 12px;"/>
                     </placeholder>
                 </TableView>
-
-                <!-- Botão dentro do painel, alinhado à direita -->
-                <HBox alignment="CENTER_RIGHT" style="-fx-padding: 8 0 0 0;">
-                    <Button fx:id="btnExcluirMovimentacao" text="Excluir movimentação"
-                            styleClass="btn-danger" onAction="#excluirMovimentacao" disable="true"/>
-                </HBox>
             </VBox>
         </VBox>
     </ScrollPane>
 
-    <!-- Barra inferior: apenas o total -->
+    <!-- Barra inferior: total à esquerda, botão excluir à direita (sempre habilitado, igual NotaFiscal) -->
     <HBox styleClass="filter-bar" alignment="CENTER_LEFT" spacing="16"
           style="-fx-padding: 10 16 10 16;">
         <Label fx:id="labelTotal" text="Total: 0 produtos"
                style="-fx-font-size: 12px; -fx-text-fill: #6B7280;"/>
+        <Region HBox.hgrow="ALWAYS"/>
+        <Button text="Excluir movimentação"
+                styleClass="btn-danger" onAction="#excluirMovimentacao"/>
     </HBox>
 
 </VBox>
