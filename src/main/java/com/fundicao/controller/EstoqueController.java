@@ -106,7 +106,15 @@ public class EstoqueController {
 
         campoBusca.textProperty().addListener((obs, a, novo) -> filtrar(novo));
 
-        tabela.getSelectionModel().selectedItemProperty().addListener((obs, a, novo) -> {
+        // Ao clicar em qualquer linha da tabela principal abre o histórico.
+        // Usando setOnMouseClicked garante que re-clique no mesmo item também dispara.
+        tabela.setOnMouseClicked(event -> {
+            SaldoEstoque sel = tabela.getSelectionModel().getSelectedItem();
+            if (sel != null) mostrarHistorico(sel);
+        });
+
+        // Listener de teclado (navegação por setas também abre o histórico)
+        tabela.getSelectionModel().selectedItemProperty().addListener((obs, antigo, novo) -> {
             if (novo != null) mostrarHistorico(novo);
             else fecharHistorico();
         });
@@ -161,7 +169,6 @@ public class EstoqueController {
     private void mostrarHistorico(SaldoEstoque s) {
         saldoAtual = s;
         tabelaHistorico.getSelectionModel().clearSelection();
-
         labelNomeProduto.setText(s.getDescricao());
         labelSaldoDetalhe.setText(String.format("%.3f kg", s.getSaldo()));
         try {
@@ -208,19 +215,26 @@ public class EstoqueController {
             Parent root = loader.load();
             MovimentacaoDialogController ctrl = loader.getController();
             ctrl.setTipo(tipo);
-
-            if (saldoAtual != null) {
-                ctrl.setProdutoById(saldoAtual.getProdutoId());
-            }
-
+            if (saldoAtual != null) ctrl.setProdutoById(saldoAtual.getProdutoId());
             Stage stage = new Stage();
             stage.setTitle(tipo.equals("Entrada") ? "Nova Entrada" : "Nova Saída");
             stage.setScene(new Scene(root));
             stage.initModality(Modality.APPLICATION_MODAL);
             stage.showAndWait();
-
-            if (ctrl.isSalvo()) carregarDados();
-
+            if (ctrl.isSalvo()) {
+                carregarDados();
+                // Reabre o histórico do mesmo produto após salvar
+                if (saldoAtual != null) {
+                    int idAtual = saldoAtual.getProdutoId();
+                    todosOsSaldos.stream()
+                            .filter(s -> s.getProdutoId() == idAtual)
+                            .findFirst()
+                            .ifPresent(s -> {
+                                tabela.getSelectionModel().select(s);
+                                mostrarHistorico(s);
+                            });
+                }
+            }
         } catch (IOException e) {
             AlertUtil.erro("Erro ao abrir formulário: " + e.getMessage());
         }
@@ -228,7 +242,6 @@ public class EstoqueController {
 
     @FXML
     private void excluirMovimentacao() {
-        // Mesma lógica do NotaFiscalController: pega direto da tabela, botão sempre habilitado
         Movimentacao sel = tabelaHistorico.getSelectionModel().getSelectedItem();
         if (sel == null) {
             AlertUtil.aviso("Selecione uma movimentação no histórico para excluir.");
@@ -239,12 +252,17 @@ public class EstoqueController {
                 " (" + nvl(sel.getTipo()) + ")?")) {
             try {
                 estoqueService.excluir(sel.getId());
+                int idAtual = saldoAtual != null ? saldoAtual.getProdutoId() : -1;
                 carregarDados();
-                if (saldoAtual != null) {
+                // Reabre o histórico do mesmo produto após excluir
+                if (idAtual > 0) {
                     todosOsSaldos.stream()
-                            .filter(s -> s.getProdutoId() == saldoAtual.getProdutoId())
+                            .filter(s -> s.getProdutoId() == idAtual)
                             .findFirst()
-                            .ifPresentOrElse(this::mostrarHistorico, this::fecharHistorico);
+                            .ifPresentOrElse(s -> {
+                                tabela.getSelectionModel().select(s);
+                                mostrarHistorico(s);
+                            }, this::fecharHistorico);
                 }
             } catch (SQLException e) {
                 AlertUtil.erro("Erro ao excluir movimentação: " + e.getMessage());
