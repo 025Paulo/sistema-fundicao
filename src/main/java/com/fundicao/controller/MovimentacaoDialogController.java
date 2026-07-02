@@ -33,6 +33,12 @@ public class MovimentacaoDialogController {
     private List<Produto> todosProdutos;
     private List<Entidade> todasEntidades;
 
+    // Preenchidos apenas em modo edição (setMovimentacao), para não perder
+    // vínculos que este formulário não expõe campos para editar.
+    private int idExistente = 0;
+    private Integer notaIdExistente;
+    private String transportadoraExistente;
+
     private final EstoqueService estoqueService = new EstoqueService();
     private final ProdutoService produtoService = new ProdutoService();
     private final EntidadeService entidadeService = new EntidadeService();
@@ -66,6 +72,31 @@ public class MovimentacaoDialogController {
                 .filter(p -> p.getId() == produtoId)
                 .findFirst()
                 .ifPresent(comboProduto::setValue);
+    }
+
+    /** Pré-preenche o formulário para editar uma movimentação já existente. */
+    public void setMovimentacao(Movimentacao m) {
+        idExistente = m.getId();
+        notaIdExistente = m.getNotaId();
+        transportadoraExistente = m.getTransportadora();
+
+        setTipo(m.getTipo());
+        labelTitulo.setText("Editar " + ("Entrada".equals(m.getTipo()) ? "Entrada" : "Saída"));
+        btnSalvar.setText("Salvar Alterações");
+
+        setProdutoById(m.getProdutoId());
+        if (m.getEntidadeId() != null && todasEntidades != null) {
+            todasEntidades.stream()
+                    .filter(e -> e.getId() == m.getEntidadeId())
+                    .findFirst()
+                    .ifPresent(comboEntidade::setValue);
+        }
+
+        campoQuantidade.setText(String.valueOf(m.getQuantidade()));
+        campoData.setValue(m.getDataMovimentacao());
+        if (m.getValorUnitario() != null) campoValorUnitario.setText(String.valueOf(m.getValorUnitario()));
+        campoOrdemCompra.setText(m.getOrdemCompra() == null ? "" : m.getOrdemCompra());
+        campoObservacoes.setText(m.getObservacoes() == null ? "" : m.getObservacoes());
     }
 
     private void carregarCombos() {
@@ -146,6 +177,7 @@ public class MovimentacaoDialogController {
     private void salvar() {
         try {
             Movimentacao m = new Movimentacao();
+            m.setId(idExistente);
             m.setProdutoId(comboProduto.getValue() == null ? 0 : comboProduto.getValue().getId());
             m.setEntidadeId(comboEntidade.getValue() == null ? null : comboEntidade.getValue().getId());
             m.setTipo(tipo);
@@ -159,8 +191,13 @@ public class MovimentacaoDialogController {
             m.setOrdemCompra(campoOrdemCompra.getText().trim());
             m.setObservacoes(campoObservacoes.getText().trim());
 
-            // validações de negócio + saldo ficam no service
-            estoqueService.registrar(m);
+            // Este formulário não tem campos para nota fiscal/transportadora;
+            // preserva o que a movimentação já tinha ao editar (fica null ao criar).
+            m.setNotaId(notaIdExistente);
+            m.setTransportadora(transportadoraExistente);
+
+            // salvar() decide INSERT ou UPDATE de acordo com o id
+            estoqueService.salvar(m);
             salvo = true;
             fecharJanela();
 

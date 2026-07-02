@@ -42,13 +42,29 @@ public class EstoqueDAO {
     }
 
     public double getSaldo(int produtoId) throws SQLException {
-        String sql = """
-            SELECT COALESCE(
-                SUM(CASE WHEN tipo='Entrada' THEN quantidade ELSE -quantidade END), 0
-            ) FROM estoque_movimentacoes WHERE produto_id = ?
-        """;
+        return getSaldo(produtoId, null);
+    }
+
+    /**
+     * Saldo do produto, opcionalmente ignorando uma movimentação específica
+     * no cálculo (usado ao validar edição: não faz sentido uma movimentação
+     * competir com a própria versão antiga dela mesma no saldo disponível).
+     */
+    public double getSaldo(int produtoId, Integer excluirMovimentacaoId) throws SQLException {
+        String sql = excluirMovimentacaoId == null
+                ? """
+                    SELECT COALESCE(
+                        SUM(CASE WHEN tipo='Entrada' THEN quantidade ELSE -quantidade END), 0
+                    ) FROM estoque_movimentacoes WHERE produto_id = ?
+                  """
+                : """
+                    SELECT COALESCE(
+                        SUM(CASE WHEN tipo='Entrada' THEN quantidade ELSE -quantidade END), 0
+                    ) FROM estoque_movimentacoes WHERE produto_id = ? AND id != ?
+                  """;
         try (PreparedStatement ps = getConnection().prepareStatement(sql)) {
             ps.setInt(1, produtoId);
+            if (excluirMovimentacaoId != null) ps.setInt(2, excluirMovimentacaoId);
             ResultSet rs = ps.executeQuery();
             return rs.next() ? rs.getDouble(1) : 0.0;
         }
@@ -56,17 +72,17 @@ public class EstoqueDAO {
 
     public List<SaldoEstoque> getSaldoTodos() throws SQLException {
         String sql = """
-        SELECT p.id AS produto_id, p.descricao,
-               SUM(CASE WHEN em.tipo='Entrada' THEN em.quantidade ELSE -em.quantidade END) AS saldo,
-               MAX(em.data_movimentacao) AS ultima_mov,
-               (SELECT tipo FROM estoque_movimentacoes
-                WHERE produto_id = p.id
-                ORDER BY data_movimentacao DESC LIMIT 1) AS ultimo_tipo
-        FROM produtos p
-        INNER JOIN estoque_movimentacoes em ON em.produto_id = p.id
-        GROUP BY p.id, p.descricao
-        ORDER BY p.descricao
-    """;
+            SELECT p.id AS produto_id, p.descricao,
+                   SUM(CASE WHEN em.tipo='Entrada' THEN em.quantidade ELSE -em.quantidade END) AS saldo,
+                   MAX(em.data_movimentacao) AS ultima_mov,
+                   (SELECT tipo FROM estoque_movimentacoes
+                    WHERE produto_id = p.id
+                    ORDER BY data_movimentacao DESC LIMIT 1) AS ultimo_tipo
+            FROM produtos p
+            INNER JOIN estoque_movimentacoes em ON em.produto_id = p.id
+            GROUP BY p.id, p.descricao
+            ORDER BY p.descricao
+        """;
         List<SaldoEstoque> dados = new ArrayList<>();
         try (PreparedStatement ps = getConnection().prepareStatement(sql);
              ResultSet rs = ps.executeQuery()) {
@@ -103,6 +119,30 @@ public class EstoqueDAO {
             }
         }
         return lista;
+    }
+
+    public void atualizar(Movimentacao m) throws SQLException {
+        String sql = """
+            UPDATE estoque_movimentacoes
+            SET produto_id = ?, tipo = ?, quantidade = ?, data_movimentacao = ?,
+                nota_id = ?, valor_unitario = ?, entidade_id = ?,
+                transportadora = ?, ordem_compra = ?, observacoes = ?
+            WHERE id = ?
+        """;
+        try (PreparedStatement ps = getConnection().prepareStatement(sql)) {
+            ps.setInt(1, m.getProdutoId());
+            ps.setString(2, m.getTipo());
+            ps.setDouble(3, m.getQuantidade());
+            ps.setString(4, m.getDataMovimentacao().toString());
+            if (m.getNotaId() != null) ps.setInt(5, m.getNotaId()); else ps.setNull(5, Types.INTEGER);
+            if (m.getValorUnitario() != null) ps.setDouble(6, m.getValorUnitario()); else ps.setNull(6, Types.REAL);
+            if (m.getEntidadeId() != null) ps.setInt(7, m.getEntidadeId()); else ps.setNull(7, Types.INTEGER);
+            ps.setString(8, m.getTransportadora());
+            ps.setString(9, m.getOrdemCompra());
+            ps.setString(10, m.getObservacoes());
+            ps.setInt(11, m.getId());
+            ps.executeUpdate();
+        }
     }
 
     public void excluir(int id) throws SQLException {

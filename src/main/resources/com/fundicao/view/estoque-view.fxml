@@ -81,12 +81,13 @@
         </VBox>
     </ScrollPane>
 
-    <!-- Barra inferior: total à esquerda, botão excluir à direita (sempre habilitado, igual NotaFiscal) -->
     <HBox styleClass="filter-bar" alignment="CENTER_LEFT" spacing="16"
           style="-fx-padding: 10 16 10 16;">
         <Label fx:id="labelTotal" text="Total: 0 produtos"
                style="-fx-font-size: 12px; -fx-text-fill: #6B7280;"/>
         <Region HBox.hgrow="ALWAYS"/>
+        <Button text="Alterar movimentação"
+                styleClass="btn-secondary" onAction="#alterarMovimentacao"/>
         <Button text="Excluir movimentação"
                 styleClass="btn-danger" onAction="#excluirMovimentacao"/>
     </HBox>

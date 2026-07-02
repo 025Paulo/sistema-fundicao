@@ -20,7 +20,6 @@ import javafx.scene.input.ClipboardContent;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyCodeCombination;
 import javafx.scene.input.KeyCombination;
-import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.VBox;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
@@ -57,9 +56,6 @@ public class EstoqueController {
     private final ObservableList<Movimentacao> dadosHistorico = FXCollections.observableArrayList();
     private List<SaldoEstoque> todosOsSaldos;
     private SaldoEstoque saldoAtual;
-    // Guarda a ultima movimentacao selecionada — evita perder referencia
-    // quando o botao externo rouba o foco da tabelaHistorico
-    private Movimentacao movimentacaoSelecionada;
 
     @FXML
     public void initialize() {
@@ -97,12 +93,6 @@ public class EstoqueController {
         tabelaHistorico.setItems(dadosHistorico);
         configurarCopiar(tabelaHistorico);
 
-        // Salva referencia da movimentacao selecionada no listener
-        // assim o botao externo nao perde a referencia ao ganhar foco
-        tabelaHistorico.getSelectionModel().selectedItemProperty().addListener((obs, antigo, novo) -> {
-            if (novo != null) movimentacaoSelecionada = novo;
-        });
-
         filtroTipo.setItems(FXCollections.observableArrayList("Todos", "Entrada", "Saída"));
         filtroTipo.setValue("Todos");
         filtroTipo.valueProperty().addListener((obs, a, novo) -> filtrar(campoBusca.getText()));
@@ -110,11 +100,6 @@ public class EstoqueController {
         carregarDados();
 
         campoBusca.textProperty().addListener((obs, a, novo) -> filtrar(novo));
-
-        tabela.addEventHandler(MouseEvent.MOUSE_CLICKED, event -> {
-            SaldoEstoque sel = tabela.getSelectionModel().getSelectedItem();
-            if (sel != null) mostrarHistorico(sel);
-        });
 
         tabela.getSelectionModel().selectedItemProperty().addListener((obs, antigo, novo) -> {
             if (novo != null) mostrarHistorico(novo);
@@ -170,7 +155,6 @@ public class EstoqueController {
 
     private void mostrarHistorico(SaldoEstoque s) {
         saldoAtual = s;
-        movimentacaoSelecionada = null;
         tabelaHistorico.getSelectionModel().clearSelection();
         labelNomeProduto.setText(s.getDescricao());
         labelSaldoDetalhe.setText(String.format("%.3f kg", s.getSaldo()));
@@ -193,7 +177,6 @@ public class EstoqueController {
 
     @FXML
     private void fecharHistorico() {
-        movimentacaoSelecionada = null;
         Timeline tl = new Timeline(new KeyFrame(Duration.millis(150),
                 new KeyValue(painelHistorico.opacityProperty(), 0),
                 new KeyValue(painelHistorico.scaleYProperty(), 0.92)));
@@ -244,10 +227,44 @@ public class EstoqueController {
     }
 
     @FXML
+    private void alterarMovimentacao() {
+        Movimentacao sel = tabelaHistorico.getSelectionModel().getSelectedItem();
+        if (sel == null) {
+            AlertUtil.aviso("Selecione uma movimentação no histórico para alterar.");
+            return;
+        }
+        try {
+            FXMLLoader loader = new FXMLLoader(
+                    getClass().getResource("/com/fundicao/view/movimentacao-dialog.fxml"));
+            Parent root = loader.load();
+            MovimentacaoDialogController ctrl = loader.getController();
+            ctrl.setMovimentacao(sel);
+            Stage stage = new Stage();
+            stage.setTitle("Editar Movimentação");
+            stage.setScene(new Scene(root));
+            stage.initModality(Modality.APPLICATION_MODAL);
+            stage.showAndWait();
+            if (ctrl.isSalvo()) {
+                int idAtual = saldoAtual != null ? saldoAtual.getProdutoId() : -1;
+                carregarDados();
+                if (idAtual > 0) {
+                    todosOsSaldos.stream()
+                            .filter(s -> s.getProdutoId() == idAtual)
+                            .findFirst()
+                            .ifPresentOrElse(s -> {
+                                tabela.getSelectionModel().select(s);
+                                mostrarHistorico(s);
+                            }, this::fecharHistorico);
+                }
+            }
+        } catch (IOException e) {
+            AlertUtil.erro("Erro ao abrir formulário: " + e.getMessage());
+        }
+    }
+
+    @FXML
     private void excluirMovimentacao() {
-        // Usa movimentacaoSelecionada porque clicar no botao externo
-        // faz a tabelaHistorico perder a selecao antes deste metodo rodar
-        Movimentacao sel = movimentacaoSelecionada;
+        Movimentacao sel = tabelaHistorico.getSelectionModel().getSelectedItem();
         if (sel == null) {
             AlertUtil.aviso("Selecione uma movimentação no histórico para excluir.");
             return;
@@ -257,7 +274,6 @@ public class EstoqueController {
                 " (" + nvl(sel.getTipo()) + ")?")) {
             try {
                 estoqueService.excluir(sel.getId());
-                movimentacaoSelecionada = null;
                 int idAtual = saldoAtual != null ? saldoAtual.getProdutoId() : -1;
                 carregarDados();
                 if (idAtual > 0) {
