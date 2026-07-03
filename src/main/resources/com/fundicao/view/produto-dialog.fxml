@@ -5,33 +5,37 @@
 <VBox xmlns="http://javafx.com/javafx/17"
       xmlns:fx="http://javafx.com/fxml/1"
       fx:controller="com.fundicao.controller.ProdutoDialogController"
-      spacing="14" style="-fx-padding: 20; -fx-min-width: 600;">
+      spacing="16" style="-fx-padding: 24; -fx-min-width: 620;">
 
-    <!-- Dados do produto -->
-    <GridPane hgap="12" vgap="10">
-        <columnConstraints>
-            <ColumnConstraints percentWidth="70"/>
-            <ColumnConstraints percentWidth="30"/>
-        </columnConstraints>
-        <Label text="Descrição *" GridPane.columnIndex="0" GridPane.rowIndex="0"/>
-        <TextField fx:id="campoDescricao" GridPane.columnIndex="0" GridPane.rowIndex="1"/>
+    <!-- Header -->
+    <Label fx:id="labelTitulo" text="Novo Produto"
+           style="-fx-font-size: 16px; -fx-font-weight: bold;"/>
 
-        <Label text="NCM (Classificação Fiscal)" GridPane.columnIndex="1" GridPane.rowIndex="0"/>
-        <TextField fx:id="campoNcm" GridPane.columnIndex="1" GridPane.rowIndex="1"/>
-    </GridPane>
+    <!-- Descrição + NCM -->
+    <HBox spacing="16">
+        <VBox spacing="6" HBox.hgrow="ALWAYS">
+            <Label text="Descrição *" style="-fx-font-size: 12px; -fx-text-fill: #6B7280;"/>
+            <TextField fx:id="campoDescricao" styleClass="text-field" promptText="Nome do produto"/>
+        </VBox>
+        <VBox spacing="6" prefWidth="160">
+            <Label text="NCM (Classificação Fiscal)" style="-fx-font-size: 12px; -fx-text-fill: #6B7280;"/>
+            <TextField fx:id="campoNcm" styleClass="text-field" promptText="0000.00.00"/>
+        </VBox>
+    </HBox>
 
     <Separator/>
 
-    <Label text="Fornecedores" style="-fx-font-weight: 600; -fx-font-size: 13px;"/>
+    <!-- Seção de Fornecedores -->
+    <Label text="Fornecedores"
+           style="-fx-font-size: 13px; -fx-font-weight: 600;"/>
 
-    <!-- Tabela de fornecedores vinculados -->
-    <TableView fx:id="tabelaForn" prefHeight="130">
+    <TableView fx:id="tabelaForn" prefHeight="130" styleClass="table-view">
         <columns>
-            <TableColumn fx:id="colFNome"   text="Fornecedor"  prefWidth="200"/>
-            <TableColumn fx:id="colFPeso"   text="Peso (kg)"   prefWidth="90"/>
-            <TableColumn fx:id="colFVrKg"   text="Vr/kg"       prefWidth="90"/>
-            <TableColumn fx:id="colFVrPeca" text="Vr/peça"     prefWidth="90"/>
-            <TableColumn fx:id="colFVrTotal" text="Vr Total"   prefWidth="100"/>
+            <TableColumn fx:id="colFNome"    text="Fornecedor"  prefWidth="200"/>
+            <TableColumn fx:id="colFPeso"    text="Peso (kg)"   prefWidth="90"/>
+            <TableColumn fx:id="colFVrKg"    text="Vr/kg"       prefWidth="90"/>
+            <TableColumn fx:id="colFVrPeca"  text="Vr/peça"     prefWidth="90"/>
+            <TableColumn fx:id="colFVrTotal" text="Vr Total"    prefWidth="100"/>
         </columns>
         <placeholder>
             <Label text="Nenhum fornecedor adicionado."
@@ -39,31 +43,31 @@
         </placeholder>
     </TableView>
 
-    <!-- Formulário para adicionar fornecedor -->
-    <GridPane hgap="10" vgap="8">
-        <columnConstraints>
-            <ColumnConstraints percentWidth="35"/>
-            <ColumnConstraints percentWidth="16"/>
-            <ColumnConstraints percentWidth="16"/>
-            <ColumnConstraints percentWidth="16"/>
-            <ColumnConstraints percentWidth="17"/>
-        </columnConstraints>
+    <!-- Formulário de adicionar fornecedor -->
+    <HBox spacing="10" alignment="BOTTOM_LEFT">
+        <VBox spacing="6" HBox.hgrow="ALWAYS">
+            <Label text="Fornecedor" style="-fx-font-size: 12px; -fx-text-fill: #6B7280;"/>
+            <ComboBox fx:id="comboFornecedor" maxWidth="Infinity" styleClass="combo-box"/>
+        </VBox>
+        <VBox spacing="6" prefWidth="100">
+            <Label text="Peso (kg)" style="-fx-font-size: 12px; -fx-text-fill: #6B7280;"/>
+            <TextField fx:id="campoPeso" styleClass="text-field" promptText="0,00"/>
+        </VBox>
+        <VBox spacing="6" prefWidth="90">
+            <Label text="Vr/kg" style="-fx-font-size: 12px; -fx-text-fill: #6B7280;"/>
+            <TextField fx:id="campoVrKg" styleClass="text-field" promptText="0,00"/>
+        </VBox>
+        <VBox spacing="6" prefWidth="90">
+            <Label text="Vr/peça" style="-fx-font-size: 12px; -fx-text-fill: #6B7280;"/>
+            <TextField fx:id="campoVrPeca" styleClass="text-field" promptText="0,00"/>
+        </VBox>
+        <VBox spacing="6" prefWidth="100">
+            <Label text="Vr Total" style="-fx-font-size: 12px; -fx-text-fill: #6B7280;"/>
+            <TextField fx:id="campoVrTotal" styleClass="text-field" promptText="0,00"/>
+        </VBox>
+    </HBox>
 
-        <Label text="Fornecedor"  GridPane.columnIndex="0" GridPane.rowIndex="0"/>
-        <Label text="Peso (kg)"   GridPane.columnIndex="1" GridPane.rowIndex="0"/>
-        <Label text="Vr/kg"       GridPane.columnIndex="2" GridPane.rowIndex="0"/>
-        <Label text="Vr/peça"     GridPane.columnIndex="3" GridPane.rowIndex="0"/>
-        <Label text="Vr Total"    GridPane.columnIndex="4" GridPane.rowIndex="0"/>
-
-        <ComboBox fx:id="comboFornecedor" maxWidth="Infinity"
-                  GridPane.columnIndex="0" GridPane.rowIndex="1"/>
-        <TextField fx:id="campoPeso"    GridPane.columnIndex="1" GridPane.rowIndex="1"/>
-        <TextField fx:id="campoVrKg"    GridPane.columnIndex="2" GridPane.rowIndex="1"/>
-        <TextField fx:id="campoVrPeca"  GridPane.columnIndex="3" GridPane.rowIndex="1"/>
-        <TextField fx:id="campoVrTotal" GridPane.columnIndex="4" GridPane.rowIndex="1"/>
-    </GridPane>
-
-    <!-- Botões de fornecedor -->
+    <!-- Ações dos fornecedores -->
     <HBox spacing="8" alignment="CENTER_RIGHT">
         <Button text="+ Adicionar Fornecedor" styleClass="btn-secondary"
                 onAction="#adicionarFornecedor"/>
@@ -73,10 +77,10 @@
 
     <Separator/>
 
-    <!-- Botões Salvar/Cancelar -->
+    <!-- Rodapé: Cancelar / Salvar -->
     <HBox spacing="10" alignment="CENTER_RIGHT">
         <Button text="Cancelar" styleClass="btn-secondary" onAction="#cancelar"/>
-        <Button text="Salvar"   styleClass="btn-primary"   onAction="#salvar"/>
+        <Button fx:id="btnSalvar" text="Salvar" styleClass="btn-primary" onAction="#salvar"/>
     </HBox>
 
 </VBox>
