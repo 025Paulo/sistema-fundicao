@@ -21,7 +21,7 @@
     <HBox styleClass="filter-bar" alignment="CENTER_LEFT" spacing="10">
         <TextField fx:id="campoBusca" promptText="Buscar por produto..."
                    prefWidth="300" styleClass="text-field"/>
-        <ComboBox fx:id="filtroTipo" prefWidth="120"/>
+        <ComboBox fx:id="filtroTipo" prefWidth="170"/>
         <Region HBox.hgrow="ALWAYS"/>
         <Button text="+ Entrada" styleClass="btn-primary" onAction="#novaEntrada"/>
         <Button text="− Saída"   styleClass="btn-danger"  onAction="#novaSaida"/>
@@ -38,7 +38,7 @@
                     <TableColumn fx:id="colUltimaMov" text="Última movimentação" prefWidth="170"/>
                 </columns>
                 <placeholder>
-                    <Label text="Nenhum produto com movimentação registrada."
+                    <Label text="Nenhum produto cadastrado."
                            style="-fx-text-fill: #9CA3AF; -fx-font-size: 13px;"/>
                 </placeholder>
             </TableView>

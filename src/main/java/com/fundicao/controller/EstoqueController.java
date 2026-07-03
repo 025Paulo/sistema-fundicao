@@ -93,9 +93,16 @@ public class EstoqueController {
         tabelaHistorico.setItems(dadosHistorico);
         configurarCopiar(tabelaHistorico);
 
-        filtroTipo.setItems(FXCollections.observableArrayList("Todos", "Entrada", "Saída"));
+        filtroTipo.setItems(FXCollections.observableArrayList(
+                "Todos",
+                "Com movimentação",
+                "Sem movimentação",
+                "Última Entrada",
+                "Última Saída"
+        ));
         filtroTipo.setValue("Todos");
-        filtroTipo.valueProperty().addListener((obs, a, novo) -> filtrar(campoBusca.getText()));
+        filtroTipo.valueProperty().addListener((obs, a, novo) ->
+                filtrar(campoBusca.getText()));
 
         carregarDados();
 
@@ -143,13 +150,22 @@ public class EstoqueController {
 
     private void filtrar(String termo) {
         if (todosOsSaldos == null) return;
+
         String lower = (termo == null) ? "" : termo.toLowerCase();
         String tipo = filtroTipo.getValue();
+
         dados.setAll(todosOsSaldos.stream()
                 .filter(s -> lower.isBlank() || s.getDescricao().toLowerCase().contains(lower))
-                .filter(s -> "Todos".equals(tipo) || tipo == null
-                        || tipo.equalsIgnoreCase(nvl(s.getUltimoTipo())))
+                .filter(s -> {
+                    if (tipo == null || "Todos".equals(tipo)) return true;
+                    if ("Com movimentação".equals(tipo)) return s.getUltimaMovimentacao() != null;
+                    if ("Sem movimentação".equals(tipo)) return s.getUltimaMovimentacao() == null;
+                    if ("Última Entrada".equals(tipo)) return "Entrada".equalsIgnoreCase(nvl(s.getUltimoTipo()));
+                    if ("Última Saída".equals(tipo)) return "Saida".equalsIgnoreCase(nvl(s.getUltimoTipo()));
+                    return true;
+                })
                 .toList());
+
         labelTotal.setText("Total: " + dados.size() + " produtos");
     }
 
@@ -158,12 +174,14 @@ public class EstoqueController {
         tabelaHistorico.getSelectionModel().clearSelection();
         labelNomeProduto.setText(s.getDescricao());
         labelSaldoDetalhe.setText(String.format("%.3f kg", s.getSaldo()));
+
         try {
             List<Movimentacao> hist = estoqueService.listarMovimentacoes(s.getProdutoId());
             dadosHistorico.setAll(hist);
         } catch (SQLException e) {
             AlertUtil.erro("Erro ao carregar histórico: " + e.getMessage());
         }
+
         if (!painelHistorico.isVisible()) {
             painelHistorico.setVisible(true);
             painelHistorico.setManaged(true);
@@ -269,13 +287,16 @@ public class EstoqueController {
             AlertUtil.aviso("Selecione uma movimentação no histórico para excluir.");
             return;
         }
+
         if (AlertUtil.confirmar("Excluir movimentação de " +
                 String.format("%.3f kg", sel.getQuantidade()) +
                 " (" + nvl(sel.getTipo()) + ")?")) {
             try {
-                estoqueService.excluir(sel.getId());
                 int idAtual = saldoAtual != null ? saldoAtual.getProdutoId() : -1;
+
+                estoqueService.excluir(sel.getId());
                 carregarDados();
+
                 if (idAtual > 0) {
                     todosOsSaldos.stream()
                             .filter(s -> s.getProdutoId() == idAtual)
@@ -285,6 +306,7 @@ public class EstoqueController {
                                 mostrarHistorico(s);
                             }, this::fecharHistorico);
                 }
+
             } catch (SQLException e) {
                 AlertUtil.erro("Erro ao excluir movimentação: " + e.getMessage());
             }

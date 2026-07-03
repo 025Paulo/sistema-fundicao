@@ -30,7 +30,7 @@ public class App extends Application {
             scene.getStylesheets().add(cssUrl.toExternalForm());
         }
 
-        stage.setTitle("Fundição — Sistema de Controle");
+        stage.setTitle("Sistema de Controle");
         stage.setScene(scene);
         stage.setMinWidth(900);
         stage.setMinHeight(600);

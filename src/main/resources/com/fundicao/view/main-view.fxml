@@ -11,7 +11,8 @@
 
     <VBox styleClass="sidebar" prefWidth="200" spacing="12">
         <VBox styleClass="sidebar-header" alignment="CENTER">
-            <Label text="FUNDIÇÃO" styleClass="sidebar-title"/>
+            <Label text="Fundição" styleClass="sidebar-title"/>
+            <Label text="Paraibuna" styleClass="sidebar-title"/>
             <Label text="Sistema de Controle" styleClass="sidebar-subtitle"/>
         </VBox>
         <Separator/>

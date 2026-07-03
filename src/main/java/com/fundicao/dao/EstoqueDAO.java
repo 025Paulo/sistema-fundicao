@@ -72,17 +72,30 @@ public class EstoqueDAO {
 
     public List<SaldoEstoque> getSaldoTodos() throws SQLException {
         String sql = """
-            SELECT p.id AS produto_id, p.descricao,
-                   SUM(CASE WHEN em.tipo='Entrada' THEN em.quantidade ELSE -em.quantidade END) AS saldo,
-                   MAX(em.data_movimentacao) AS ultima_mov,
-                   (SELECT tipo FROM estoque_movimentacoes
-                    WHERE produto_id = p.id
-                    ORDER BY data_movimentacao DESC LIMIT 1) AS ultimo_tipo
-            FROM produtos p
-            INNER JOIN estoque_movimentacoes em ON em.produto_id = p.id
-            GROUP BY p.id, p.descricao
-            ORDER BY p.descricao
-        """;
+        SELECT
+            p.id AS produto_id,
+            p.descricao,
+            COALESCE(SUM(
+                CASE
+                    WHEN em.tipo = 'Entrada' THEN em.quantidade
+                    WHEN em.tipo = 'Saida' THEN -em.quantidade
+                    ELSE 0
+                END
+            ), 0) AS saldo,
+            MAX(em.data_movimentacao) AS ultima_mov,
+            (
+                SELECT em2.tipo
+                FROM estoque_movimentacoes em2
+                WHERE em2.produto_id = p.id
+                ORDER BY em2.data_movimentacao DESC, em2.id DESC
+                LIMIT 1
+            ) AS ultimo_tipo
+        FROM produtos p
+        LEFT JOIN estoque_movimentacoes em ON em.produto_id = p.id
+        GROUP BY p.id, p.descricao
+        ORDER BY p.descricao
+    """;
+
         List<SaldoEstoque> dados = new ArrayList<>();
         try (PreparedStatement ps = getConnection().prepareStatement(sql);
              ResultSet rs = ps.executeQuery()) {
