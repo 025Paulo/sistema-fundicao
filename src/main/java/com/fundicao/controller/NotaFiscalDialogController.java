@@ -38,8 +38,13 @@ public class NotaFiscalDialogController {
 
     @FXML
     public void initialize() {
-        comboNatureza.setItems(FXCollections.observableArrayList("Entrada", "Saida"));
-        campoData.setValue(LocalDate.now());
+        comboNatureza.setItems(FXCollections.observableArrayList(
+                "Entrada",
+                "Demonstração",
+                "Retorno de Conserto",
+                "Retorno de Mercadoria",
+                "Saida"
+        ));        campoData.setValue(LocalDate.now());
         carregarEntidades();
     }
 

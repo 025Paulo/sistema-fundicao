@@ -86,7 +86,13 @@ public class NotaFiscalController {
 
         // Filtro de natureza
         filtroNatureza.setItems(FXCollections.observableArrayList(
-                "Todos", "Entrada", "Saída", "Transferência"));
+                "Todos",
+                "Entrada",
+                "Demonstração",
+                "Retorno de Conserto",
+                "Retorno de Mercadoria",
+                "Saida"
+        ));
         filtroNatureza.setValue("Todos");
         filtroNatureza.valueProperty().addListener((obs, a, novo) -> filtrar(campoBusca.getText()));
 
