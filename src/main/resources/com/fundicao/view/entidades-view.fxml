@@ -21,6 +21,7 @@
     <HBox styleClass="filter-bar" alignment="CENTER_LEFT" spacing="10">
         <TextField fx:id="campoBusca" promptText="Buscar por nome, CNPJ ou e-mail..."
                    prefWidth="300" styleClass="text-field"/>
+        <ComboBox fx:id="filtroTipo" prefWidth="150" styleClass="combo-box"/>
         <Region HBox.hgrow="ALWAYS"/>
         <Button text="+ Adicionar" styleClass="btn-primary" onAction="#adicionar"/>
     </HBox>

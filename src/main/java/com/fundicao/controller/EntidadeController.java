@@ -26,6 +26,7 @@ import java.util.List;
 
 public class EntidadeController {
 
+    @FXML private ComboBox<String> filtroTipo;
     @FXML private TextField campoBusca;
     @FXML private TableView<Entidade> tabela;
     @FXML private TableColumn<Entidade, String> colRazaoSocial;
@@ -65,6 +66,11 @@ public class EntidadeController {
         tabela.getSelectionModel().setCellSelectionEnabled(true);
         configurarCopiarCelula(tabela);
         carregarDados();
+
+        filtroTipo.setItems(FXCollections.observableArrayList(
+                "Todos", "Cliente", "Fornecedor"));
+        filtroTipo.setValue("Todos");
+        filtroTipo.valueProperty().addListener((obs, a, novo) -> filtrar(campoBusca.getText()));
 
         campoBusca.textProperty().addListener((obs, antigo, novo) -> filtrar(novo));
 
@@ -119,8 +125,13 @@ public class EntidadeController {
             List<Entidade> lista = (termo == null || termo.isBlank())
                     ? service.listarTodos()
                     : service.buscar(termo.trim());
-            dados.setAll(lista);
-            labelTotal.setText("Total: " + lista.size() + " registros");
+
+            String tipo = filtroTipo.getValue();
+            dados.setAll(lista.stream()
+                    .filter(e -> "Todos".equals(tipo) || tipo == null
+                            || tipo.equalsIgnoreCase(e.getTipo()))
+                    .toList());
+            labelTotal.setText("Total: " + dados.size() + " registros");
         } catch (SQLException e) {
             AlertUtil.erro("Erro ao filtrar entidades: " + e.getMessage());
         }
