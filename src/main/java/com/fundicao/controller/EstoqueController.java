@@ -27,7 +27,10 @@ import javafx.util.Duration;
 
 import java.io.IOException;
 import java.sql.SQLException;
+import java.text.DecimalFormat;
+import java.text.DecimalFormatSymbols;
 import java.util.List;
+import java.util.Locale;
 
 public class EstoqueController {
 
@@ -57,12 +60,24 @@ public class EstoqueController {
     private List<SaldoEstoque> todosOsSaldos;
     private SaldoEstoque saldoAtual;
 
+    /** Formata um valor em kg sem zeros decimais desnecessários. Ex: 150.0 → "150 kg", 150.5 → "150,5 kg" */
+    private static String formatarKg(double valor) {
+        DecimalFormat df = new DecimalFormat("#,##0.###", new DecimalFormatSymbols(new Locale("pt", "BR")));
+        return df.format(valor) + " kg";
+    }
+
+    /** Formata quantidade sem unidade e sem zeros decimais desnecessários. Ex: 150.0 → "150", 150.5 → "150,5" */
+    private static String formatarQtd(double valor) {
+        DecimalFormat df = new DecimalFormat("#,##0.###", new DecimalFormatSymbols(new Locale("pt", "BR")));
+        return df.format(valor);
+    }
+
     @FXML
     public void initialize() {
         colProduto.setCellValueFactory(c ->
                 new SimpleStringProperty(c.getValue().getDescricao()));
         colSaldo.setCellValueFactory(c ->
-                new SimpleStringProperty(String.format("%.3f kg", c.getValue().getSaldo())));
+                new SimpleStringProperty(formatarKg(c.getValue().getSaldo())));
         colUltimaMov.setCellValueFactory(c ->
                 new SimpleStringProperty(nvl(c.getValue().getUltimaMovimentacao())));
 
@@ -74,7 +89,7 @@ public class EstoqueController {
         colHistTipo.setCellValueFactory(c ->
                 new SimpleStringProperty(nvl(c.getValue().getTipo())));
         colHistQtd.setCellValueFactory(c ->
-                new SimpleStringProperty(String.format("%.3f", c.getValue().getQuantidade())));
+                new SimpleStringProperty(formatarQtd(c.getValue().getQuantidade())));
         colHistEntidade.setCellValueFactory(c ->
                 new SimpleStringProperty(nvl(c.getValue().getEntidadeNome())));
         colHistData.setCellValueFactory(c ->
@@ -173,7 +188,7 @@ public class EstoqueController {
         saldoAtual = s;
         tabelaHistorico.getSelectionModel().clearSelection();
         labelNomeProduto.setText(s.getDescricao());
-        labelSaldoDetalhe.setText(String.format("%.3f kg", s.getSaldo()));
+        labelSaldoDetalhe.setText(formatarKg(s.getSaldo()));
 
         try {
             List<Movimentacao> hist = estoqueService.listarMovimentacoes(s.getProdutoId());
@@ -289,7 +304,7 @@ public class EstoqueController {
         }
 
         if (AlertUtil.confirmar("Excluir movimentação de " +
-                String.format("%.3f kg", sel.getQuantidade()) +
+                formatarKg(sel.getQuantidade()) +
                 " (" + nvl(sel.getTipo()) + ")?")) {
             try {
                 int idAtual = saldoAtual != null ? saldoAtual.getProdutoId() : -1;
