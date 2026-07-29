@@ -1,4 +1,0 @@
---patch-module
-com.fundicao=_
---add-reads
-com.fundicao=ALL-UNNAMED

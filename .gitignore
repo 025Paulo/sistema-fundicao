@@ -27,7 +27,6 @@ release.properties
 ### NetBeans ###
 /nbproject/private/
 /nbbuild/
-/dist/
 /nbdist/
 /.nb-gradle/
 build/
@@ -47,3 +46,13 @@ build/
 
 # ── Logs ──────────────────────────────────────
 *.log
+
+# ── Instalador / jpackage (binários gerados) ──
+dist/
+instalador/SistemaFundicao/
+instalador/SistemaFundicao.exe
+instalador/app/
+instalador/*.exe
+
+# ── Arquivos .class soltos ─────────────────────
+**/*.class
