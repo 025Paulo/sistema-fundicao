@@ -2,10 +2,15 @@ package com.fundicao.controller;
 
 import com.fundicao.model.Entidade;
 import com.fundicao.model.NotaFiscal;
+import com.fundicao.model.NotaProduto;
+import com.fundicao.model.Produto;
 import com.fundicao.service.EntidadeService;
 import com.fundicao.service.NotaFiscalService;
+import com.fundicao.service.ProdutoService;
 import com.fundicao.util.AlertUtil;
+import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
 import javafx.stage.Stage;
@@ -13,41 +18,103 @@ import javafx.util.StringConverter;
 
 import java.sql.SQLException;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 
 public class NotaFiscalDialogController {
 
-    @FXML private Label labelTitulo;
-    @FXML private ComboBox<String> comboNatureza;
-    @FXML private TextField campoNumero;
-    @FXML private DatePicker campoData;
+    // ── Campos da nota ──────────────────────────────────────────────────────
+    @FXML private Label              labelTitulo;
+    @FXML private ComboBox<String>   comboNatureza;
+    @FXML private TextField          campoNumero;
+    @FXML private DatePicker         campoData;
     @FXML private ComboBox<Entidade> comboEntidade;
-    @FXML private TextField campoOrdemCompra;
-    @FXML private TextField campoTransportadora;
-    @FXML private TextField campoTransporteRs;
-    @FXML private TextField campoDescontoRs;
-    @FXML private TextField campoPesoBruto;
-    @FXML private TextField campoPesoLiquido;
-    @FXML private Button btnSalvar;
+    @FXML private TextField          campoOrdemCompra;
+    @FXML private TextField          campoTransportadora;
+    @FXML private TextField          campoTransporteRs;
+    @FXML private TextField          campoDescontoRs;
+    @FXML private TextField          campoPesoBruto;
+    @FXML private TextField          campoPesoLiquido;
+    @FXML private Button             btnSalvar;
 
+    // ── Tabela de produtos da nota ──────────────────────────────────────────
+    @FXML private TableView<NotaProduto>           tabelaProdutos;
+    @FXML private TableColumn<NotaProduto, String> colProdNome;
+    @FXML private TableColumn<NotaProduto, String> colProdQtd;
+    @FXML private TableColumn<NotaProduto, String> colProdVrUnit;
+    @FXML private TableColumn<NotaProduto, String> colProdVrTotal;
+
+    @FXML private ComboBox<Produto> comboProduto;
+    @FXML private TextField         campoQtd;
+    @FXML private TextField         campoVrUnit;
+    @FXML private TextField         campoVrTotalItem;
+
+    // ── Services ────────────────────────────────────────────────────────────
     private final NotaFiscalService notaFiscalService = new NotaFiscalService();
-    private final EntidadeService entidadeService = new EntidadeService();
+    private final EntidadeService   entidadeService   = new EntidadeService();
+    private final ProdutoService    produtoService    = new ProdutoService();
 
-    private boolean salvo = false;
+    private final ObservableList<NotaProduto> produtos = FXCollections.observableArrayList();
+    private boolean    salvo = false;
     private NotaFiscal notaEditando;
 
+    // ── Inicialização ───────────────────────────────────────────────────────
     @FXML
     public void initialize() {
         comboNatureza.setItems(FXCollections.observableArrayList(
-                "Entrada",
-                "Demonstração",
-                "Retorno de Conserto",
-                "Retorno de Mercadoria",
-                "Saida"
-        ));        campoData.setValue(LocalDate.now());
+                "Entrada", "Demonstração", "Retorno de Conserto",
+                "Retorno de Mercadoria", "Saida"));
+        campoData.setValue(LocalDate.now());
+
+        colProdNome.setCellValueFactory(c ->
+                new SimpleStringProperty(c.getValue().getProdutoDescricao()));
+        colProdQtd.setCellValueFactory(c ->
+                new SimpleStringProperty(fmt(c.getValue().getQuantidade(), "%.2f")));
+        colProdVrUnit.setCellValueFactory(c ->
+                new SimpleStringProperty(fmtM(c.getValue().getVrUnitario())));
+        colProdVrTotal.setCellValueFactory(c ->
+                new SimpleStringProperty(fmtM(c.getValue().getVrTotal())));
+        tabelaProdutos.setItems(produtos);
+
+        // auto-calcula Vr Total ao sair dos campos Qtd ou VrUnit
+        campoVrUnit.focusedProperty().addListener((obs, old, focused) -> {
+            if (!focused) calcularTotal();
+        });
+        campoQtd.focusedProperty().addListener((obs, old, focused) -> {
+            if (!focused) calcularTotal();
+        });
+
         carregarEntidades();
+        carregarProdutos();
     }
 
+    // ── Carregamentos ───────────────────────────────────────────────────────
+    private void carregarEntidades() {
+        try {
+            List<Entidade> entidades = entidadeService.listarTodos();
+            comboEntidade.setItems(FXCollections.observableArrayList(entidades));
+            comboEntidade.setConverter(new StringConverter<>() {
+                public String toString(Entidade e) { return e == null ? "" : e.getRazaoSocial(); }
+                public Entidade fromString(String s) { return null; }
+            });
+        } catch (SQLException e) {
+            AlertUtil.erro("Erro ao carregar entidades: " + e.getMessage());
+        }
+    }
+
+    private void carregarProdutos() {
+        try {
+            comboProduto.setItems(FXCollections.observableArrayList(produtoService.listarTodos()));
+            comboProduto.setConverter(new StringConverter<>() {
+                public String toString(Produto p) { return p == null ? "" : p.getDescricao(); }
+                public Produto fromString(String s) { return null; }
+            });
+        } catch (SQLException e) {
+            AlertUtil.erro("Erro ao carregar produtos: " + e.getMessage());
+        }
+    }
+
+    // ── Edição (modo alterar) ───────────────────────────────────────────────
     public void setNotaFiscal(NotaFiscal nota) {
         this.notaEditando = nota;
         labelTitulo.setText("Alterar Nota Fiscal");
@@ -69,25 +136,74 @@ public class NotaFiscalDialogController {
                     .findFirst()
                     .ifPresent(comboEntidade::setValue);
         }
-    }
 
-    private void carregarEntidades() {
         try {
-            List<Entidade> entidades = entidadeService.listarTodos();
-            comboEntidade.setItems(FXCollections.observableArrayList(entidades));
-            comboEntidade.setConverter(new StringConverter<>() {
-                public String toString(Entidade e) { return e == null ? "" : e.getRazaoSocial(); }
-                public Entidade fromString(String s) { return null; }
-            });
+            produtos.setAll(notaFiscalService.listarProdutosPorNota(nota.getId()));
         } catch (SQLException e) {
-            AlertUtil.erro("Erro ao carregar entidades: " + e.getMessage());
+            AlertUtil.erro("Erro ao carregar produtos da nota: " + e.getMessage());
         }
     }
 
+    // ── Ações da tabela de produtos ─────────────────────────────────────────
+    @FXML
+    private void adicionarProduto() {
+        Produto prod = comboProduto.getValue();
+        if (prod == null) {
+            AlertUtil.aviso("Selecione um produto antes de adicionar.");
+            return;
+        }
+        boolean jaExiste = produtos.stream()
+                .anyMatch(np -> np.getProdutoId() == prod.getId());
+        if (jaExiste) {
+            AlertUtil.aviso("Esse produto já foi adicionado à nota.");
+            return;
+        }
+
+        NotaProduto np = new NotaProduto();
+        np.setProdutoId(prod.getId());
+        np.setProdutoDescricao(prod.getDescricao());
+        np.setQuantidade(parseDouble(campoQtd.getText()));
+        np.setVrUnitario(parseDouble(campoVrUnit.getText()));
+        np.setVrTotal(parseDouble(campoVrTotalItem.getText()));
+        produtos.add(np);
+
+        comboProduto.setValue(null);
+        campoQtd.clear();
+        campoVrUnit.clear();
+        campoVrTotalItem.clear();
+    }
+
+    @FXML
+    private void removerProduto() {
+        NotaProduto sel = tabelaProdutos.getSelectionModel().getSelectedItem();
+        if (sel == null) {
+            AlertUtil.aviso("Selecione um produto na tabela para remover.");
+            return;
+        }
+        if (AlertUtil.confirmar("Remover \"" + sel.getProdutoDescricao() + "\" da nota?")) {
+            try {
+                if (sel.getId() > 0) {
+                    notaFiscalService.excluirProdutoDaNota(sel.getId());
+                }
+                produtos.remove(sel);
+            } catch (SQLException e) {
+                AlertUtil.erro("Erro ao remover produto: " + e.getMessage());
+            }
+        }
+    }
+
+    private void calcularTotal() {
+        Double qtd  = parseDouble(campoQtd.getText());
+        Double unit = parseDouble(campoVrUnit.getText());
+        if (qtd != null && unit != null) {
+            campoVrTotalItem.setText(String.format("%.2f", qtd * unit));
+        }
+    }
+
+    // ── Salvar ──────────────────────────────────────────────────────────────
     @FXML
     private void salvar() {
         if (!validar()) return;
-
         try {
             NotaFiscal nf = notaEditando != null ? notaEditando : new NotaFiscal();
 
@@ -109,7 +225,7 @@ public class NotaFiscalDialogController {
                 nf.setEntidadeNome(null);
             }
 
-            notaFiscalService.salvar(nf);
+            notaFiscalService.salvar(nf, new ArrayList<>(produtos));
             salvo = true;
             fecharJanela();
 
@@ -120,25 +236,29 @@ public class NotaFiscalDialogController {
         }
     }
 
+    // ── Validação ───────────────────────────────────────────────────────────
     private boolean validar() {
         if (comboNatureza.getValue() == null) {
-            AlertUtil.erro("Selecione a natureza.");
-            return false;
+            AlertUtil.erro("Selecione a natureza."); return false;
         }
         if (campoNumero.getText() == null || campoNumero.getText().trim().isEmpty()) {
-            AlertUtil.erro("Informe o número da nota.");
-            return false;
+            AlertUtil.erro("Informe o número da nota."); return false;
         }
         if (campoData.getValue() == null) {
-            AlertUtil.erro("Informe a data.");
-            return false;
+            AlertUtil.erro("Informe a data."); return false;
         }
         return true;
     }
 
+    // ── Utilitários ─────────────────────────────────────────────────────────
+    private Double parseDouble(String s) {
+        try { return (s == null || s.isBlank()) ? null : Double.parseDouble(s.replace(",", ".")); }
+        catch (NumberFormatException e) { return null; }
+    }
+
     private Double parseNullableDouble(String texto) {
-        String valor = texto == null ? "" : texto.trim().replace(",", ".");
-        return valor.isEmpty() ? null : Double.parseDouble(valor);
+        String v = texto == null ? "" : texto.trim().replace(",", ".");
+        return v.isEmpty() ? null : Double.parseDouble(v);
     }
 
     private String formatarDouble(Double valor) {
@@ -151,16 +271,12 @@ public class NotaFiscalDialogController {
         return t.isEmpty() ? null : t;
     }
 
-    private String valorOuVazio(String valor) {
-        return valor == null ? "" : valor;
-    }
+    private String valorOuVazio(String valor) { return valor == null ? "" : valor; }
 
-    @FXML
-    private void cancelar() { fecharJanela(); }
+    private String fmt(Double v, String pattern) { return v != null ? String.format(pattern, v) : "—"; }
+    private String fmtM(Double v)               { return v != null ? String.format("R$ %.2f", v) : "—"; }
 
-    public boolean isSalvo() { return salvo; }
-
-    private void fecharJanela() {
-        ((Stage) btnSalvar.getScene().getWindow()).close();
-    }
+    @FXML private void cancelar() { fecharJanela(); }
+    public boolean isSalvo()      { return salvo; }
+    private void fecharJanela()   { ((Stage) btnSalvar.getScene().getWindow()).close(); }
 }

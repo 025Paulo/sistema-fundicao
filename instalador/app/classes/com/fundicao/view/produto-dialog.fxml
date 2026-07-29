@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.control.*?>
+
+<VBox xmlns="http://javafx.com/javafx/17"
+      xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="com.fundicao.controller.ProdutoDialogController"
+      spacing="16" style="-fx-padding: 24; -fx-min-width: 620;">
+
+    <!-- Header -->
+    <Label fx:id="labelTitulo" text="Novo Produto"
+           style="-fx-font-size: 16px; -fx-font-weight: bold;"/>
+
+    <!-- Descrição + NCM -->
+    <HBox spacing="16">
+        <VBox spacing="6" HBox.hgrow="ALWAYS">
+            <Label text="Descrição *" style="-fx-font-size: 12px; -fx-text-fill: #6B7280;"/>
+            <TextField fx:id="campoDescricao" styleClass="text-field" promptText="Nome do produto"/>
+        </VBox>
+        <VBox spacing="6" prefWidth="160">
+            <Label text="NCM (Classificação Fiscal)" style="-fx-font-size: 12px; -fx-text-fill: #6B7280;"/>
+            <TextField fx:id="campoNcm" styleClass="text-field" promptText="0000.00.00"/>
+        </VBox>
+    </HBox>
+
+    <Separator/>
+
+    <!-- Seção de Fornecedores -->
+    <Label text="Fornecedores"
+           style="-fx-font-size: 13px; -fx-font-weight: 600;"/>
+
+    <TableView fx:id="tabelaForn" prefHeight="130" styleClass="table-view">
+        <columns>
+            <TableColumn fx:id="colFNome"    text="Fornecedor"  prefWidth="200"/>
+            <TableColumn fx:id="colFPeso"    text="Peso (kg)"   prefWidth="90"/>
+            <TableColumn fx:id="colFVrKg"    text="Vr/kg"       prefWidth="90"/>
+            <TableColumn fx:id="colFVrPeca"  text="Vr/peça"     prefWidth="90"/>
+            <TableColumn fx:id="colFVrTotal" text="Vr Total"    prefWidth="100"/>
+        </columns>
+        <placeholder>
+            <Label text="Nenhum fornecedor adicionado."
+                   style="-fx-text-fill: #9CA3AF; -fx-font-size: 12px;"/>
+        </placeholder>
+    </TableView>
+
+    <!-- Formulário de adicionar fornecedor -->
+    <HBox spacing="10" alignment="BOTTOM_LEFT">
+        <VBox spacing="6" HBox.hgrow="ALWAYS">
+            <Label text="Fornecedor" style="-fx-font-size: 12px; -fx-text-fill: #6B7280;"/>
+            <ComboBox fx:id="comboFornecedor" maxWidth="Infinity" styleClass="combo-box"/>
+        </VBox>
+        <VBox spacing="6" prefWidth="100">
+            <Label text="Peso (kg)" style="-fx-font-size: 12px; -fx-text-fill: #6B7280;"/>
+            <TextField fx:id="campoPeso" styleClass="text-field" promptText="0,00"/>
+        </VBox>
+        <VBox spacing="6" prefWidth="90">
+            <Label text="Vr/kg" style="-fx-font-size: 12px; -fx-text-fill: #6B7280;"/>
+            <TextField fx:id="campoVrKg" styleClass="text-field" promptText="0,00"/>
+        </VBox>
+        <VBox spacing="6" prefWidth="90">
+            <Label text="Vr/peça" style="-fx-font-size: 12px; -fx-text-fill: #6B7280;"/>
+            <TextField fx:id="campoVrPeca" styleClass="text-field" promptText="0,00"/>
+        </VBox>
+        <VBox spacing="6" prefWidth="100">
+            <Label text="Vr Total" style="-fx-font-size: 12px; -fx-text-fill: #6B7280;"/>
+            <TextField fx:id="campoVrTotal" styleClass="text-field" promptText="0,00"/>
+        </VBox>
+    </HBox>
+
+    <!-- Ações dos fornecedores -->
+    <HBox spacing="8" alignment="CENTER_RIGHT">
+        <Button text="+ Adicionar Fornecedor" styleClass="btn-secondary"
+                onAction="#adicionarFornecedor"/>
+        <Button text="Remover Selecionado" styleClass="btn-danger"
+                onAction="#removerFornecedor"/>
+    </HBox>
+
+    <Separator/>
+
+    <!-- Rodapé: Cancelar / Salvar -->
+    <HBox spacing="10" alignment="CENTER_RIGHT">
+        <Button text="Cancelar" styleClass="btn-secondary" onAction="#cancelar"/>
+        <Button fx:id="btnSalvar" text="Salvar" styleClass="btn-primary" onAction="#salvar"/>
+    </HBox>
+
+</VBox>

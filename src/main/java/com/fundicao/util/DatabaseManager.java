@@ -13,20 +13,27 @@ public class DatabaseManager {
     private static volatile DatabaseManager instance;
     private static final String DB_NAME = "fundicao.db";
 
-
     private final String dbUrl;
     private Connection connection;
 
     private DatabaseManager() {
+        try {
+            Class.forName("org.sqlite.JDBC");
+        } catch (ClassNotFoundException e) {
+            throw new RuntimeException("Driver SQLite não encontrado.", e);
+        }
+
         String appDataDir = System.getenv("LOCALAPPDATA");
         if (appDataDir == null) {
             appDataDir = System.getProperty("user.home");
         }
+
         Path dbPath = Paths.get(appDataDir, "FundicaoApp", DB_NAME);
         File dir = dbPath.getParent().toFile();
-        if (!dir.exists()) {
-            dir.mkdirs();
+        if (!dir.exists() && !dir.mkdirs()) {
+            throw new RuntimeException("Não foi possível criar a pasta do banco: " + dir.getAbsolutePath());
         }
+
         this.dbUrl = "jdbc:sqlite:" + dbPath.toAbsolutePath();
         System.out.println("Banco de dados em: " + dbPath.toAbsolutePath());
     }
@@ -42,14 +49,10 @@ public class DatabaseManager {
         return instance;
     }
 
-    /**
-     * Retorna sempre a mesma conexão. Se estiver fechada ou nula, abre uma nova.
-     * Ideal para SQLite local com acesso single-thread (JavaFX UI thread).
-     */
     public synchronized Connection getConnection() throws SQLException {
         if (connection == null || connection.isClosed()) {
             connection = DriverManager.getConnection(dbUrl);
-            // WAL mode: permite leituras simultâneas sem bloquear escritas
+
             try (Statement stmt = connection.createStatement()) {
                 stmt.execute("PRAGMA journal_mode=WAL;");
                 stmt.execute("PRAGMA foreign_keys = ON;");
@@ -59,9 +62,6 @@ public class DatabaseManager {
         return connection;
     }
 
-    /**
-     * Fecha a conexão explicitamente. Chame no encerramento da aplicação.
-     */
     public synchronized void fechar() {
         if (connection != null) {
             try {

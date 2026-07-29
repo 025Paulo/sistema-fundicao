@@ -1,5 +1,6 @@
 package com.fundicao.controller;
 
+import com.fundicao.dao.NotaProdutoDAO;
 import com.fundicao.model.NotaFiscal;
 import com.fundicao.service.NotaFiscalService;
 import com.fundicao.util.AlertUtil;
@@ -59,6 +60,16 @@ public class NotaFiscalController {
     private final NotaFiscalService service = new NotaFiscalService();
     private final ObservableList<NotaFiscal> dados = FXCollections.observableArrayList();
     private List<NotaFiscal> todasAsNotas;
+
+    private final NotaProdutoDAO notaProdutoDAO = new NotaProdutoDAO();
+
+    public List<NotaProduto> listarProdutosPorNota(int notaId) throws SQLException {
+        return notaProdutoDAO.listarPorNota(notaId);
+    }
+
+    public void excluirProdutoDaNota(int notaProdutoId) throws SQLException {
+        notaProdutoDAO.excluir(notaProdutoId);
+    }
 
     @FXML
     public void initialize() {
@@ -139,6 +150,8 @@ public class NotaFiscalController {
             AlertUtil.erro("Erro ao carregar notas fiscais: " + e.getMessage());
         }
     }
+
+
 
     private void filtrar(String termo) {
         if (todasAsNotas == null) return;

@@ -5,7 +5,7 @@
 <VBox xmlns="http://javafx.com/javafx/17"
       xmlns:fx="http://javafx.com/fxml/1"
       fx:controller="com.fundicao.controller.NotaFiscalDialogController"
-      spacing="16" style="-fx-padding: 24;">
+      spacing="16" style="-fx-padding: 24; -fx-min-width: 700;">
 
     <Label fx:id="labelTitulo" text="Nova Nota Fiscal"
            style="-fx-font-size: 16px; -fx-font-weight: bold;"/>
@@ -50,9 +50,6 @@
             <Label text="Desconto (R$)" style="-fx-font-size: 12px; -fx-text-fill: #6B7280;"/>
             <TextField fx:id="campoDescontoRs" promptText="0,00" styleClass="text-field"/>
         </VBox>
-    </HBox>
-
-    <HBox spacing="16">
         <VBox spacing="6" HBox.hgrow="ALWAYS">
             <Label text="Peso bruto (kg)" style="-fx-font-size: 12px; -fx-text-fill: #6B7280;"/>
             <TextField fx:id="campoPesoBruto" promptText="0,00" styleClass="text-field"/>
@@ -62,6 +59,52 @@
             <TextField fx:id="campoPesoLiquido" promptText="0,00" styleClass="text-field"/>
         </VBox>
     </HBox>
+
+    <Separator/>
+
+    <Label text="Produtos da Nota"
+           style="-fx-font-size: 13px; -fx-font-weight: 600;"/>
+
+    <TableView fx:id="tabelaProdutos" prefHeight="140" styleClass="table-view">
+        <columns>
+            <TableColumn fx:id="colProdNome"    text="Produto"       prefWidth="260"/>
+            <TableColumn fx:id="colProdQtd"     text="Quantidade"    prefWidth="100"/>
+            <TableColumn fx:id="colProdVrUnit"  text="Vr Unitário"   prefWidth="110"/>
+            <TableColumn fx:id="colProdVrTotal" text="Vr Total"      prefWidth="110"/>
+        </columns>
+        <placeholder>
+            <Label text="Nenhum produto adicionado."
+                   style="-fx-text-fill: #9CA3AF; -fx-font-size: 12px;"/>
+        </placeholder>
+    </TableView>
+
+    <HBox spacing="10" alignment="BOTTOM_LEFT">
+        <VBox spacing="6" HBox.hgrow="ALWAYS">
+            <Label text="Produto" style="-fx-font-size: 12px; -fx-text-fill: #6B7280;"/>
+            <ComboBox fx:id="comboProduto" maxWidth="Infinity" styleClass="combo-box"/>
+        </VBox>
+        <VBox spacing="6" prefWidth="100">
+            <Label text="Quantidade" style="-fx-font-size: 12px; -fx-text-fill: #6B7280;"/>
+            <TextField fx:id="campoQtd" styleClass="text-field" promptText="0,00"/>
+        </VBox>
+        <VBox spacing="6" prefWidth="110">
+            <Label text="Vr Unitário" style="-fx-font-size: 12px; -fx-text-fill: #6B7280;"/>
+            <TextField fx:id="campoVrUnit" styleClass="text-field" promptText="0,00"/>
+        </VBox>
+        <VBox spacing="6" prefWidth="110">
+            <Label text="Vr Total" style="-fx-font-size: 12px; -fx-text-fill: #6B7280;"/>
+            <TextField fx:id="campoVrTotalItem" styleClass="text-field" promptText="0,00"/>
+        </VBox>
+    </HBox>
+
+    <HBox spacing="8" alignment="CENTER_RIGHT">
+        <Button text="+ Adicionar Produto" styleClass="btn-secondary"
+                onAction="#adicionarProduto"/>
+        <Button text="Remover Selecionado" styleClass="btn-danger"
+                onAction="#removerProduto"/>
+    </HBox>
+
+    <Separator/>
 
     <HBox spacing="10" alignment="CENTER_RIGHT">
         <Button text="Cancelar" styleClass="btn-secondary" onAction="#cancelar"/>

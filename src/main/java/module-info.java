@@ -1,4 +1,5 @@
 module com.fundicao {
+    requires java.sql;
     requires javafx.controls;
     requires javafx.fxml;
     requires org.xerial.sqlitejdbc;
