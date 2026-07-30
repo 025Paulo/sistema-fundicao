@@ -29,13 +29,17 @@ public class NotaProdutoDAO {
     }
 
     public void salvar(NotaProduto np) throws SQLException {
+        if (np.getId() > 0) {
+            atualizar(np);
+        } else {
+            inserir(np);
+        }
+    }
+
+    private void inserir(NotaProduto np) throws SQLException {
         String sql = """
             INSERT INTO nota_produtos (nota_id, produto_id, quantidade, vr_unitario, vr_total)
             VALUES (?, ?, ?, ?, ?)
-            ON CONFLICT(nota_id, produto_id) DO UPDATE SET
-                quantidade  = excluded.quantidade,
-                vr_unitario = excluded.vr_unitario,
-                vr_total    = excluded.vr_total
         """;
         try (PreparedStatement ps = getConnection().prepareStatement(sql)) {
             ps.setInt(1, np.getNotaId());
@@ -47,15 +51,42 @@ public class NotaProdutoDAO {
         }
     }
 
+    private void atualizar(NotaProduto np) throws SQLException {
+        String sql = """
+            UPDATE nota_produtos
+            SET quantidade  = ?,
+                vr_unitario = ?,
+                vr_total    = ?
+            WHERE id = ?
+        """;
+        try (PreparedStatement ps = getConnection().prepareStatement(sql)) {
+            setDoubleOrNull(ps, 1, np.getQuantidade());
+            setDoubleOrNull(ps, 2, np.getVrUnitario());
+            setDoubleOrNull(ps, 3, np.getVrTotal());
+            ps.setInt(4, np.getId());
+            ps.executeUpdate();
+        }
+    }
+
+    public void excluirPorNota(int notaId) throws SQLException {
+        try (PreparedStatement ps = getConnection().prepareStatement(
+                "DELETE FROM nota_produtos WHERE nota_id = ?")) {
+            ps.setInt(1, notaId);
+            ps.executeUpdate();
+        }
+    }
+
     public void excluir(int id) throws SQLException {
-        try (PreparedStatement ps = getConnection().prepareStatement("DELETE FROM nota_produtos WHERE id=?")) {
+        try (PreparedStatement ps = getConnection().prepareStatement(
+                "DELETE FROM nota_produtos WHERE id = ?")) {
             ps.setInt(1, id);
             ps.executeUpdate();
         }
     }
 
     private void setDoubleOrNull(PreparedStatement ps, int idx, Double val) throws SQLException {
-        if (val != null) ps.setDouble(idx, val); else ps.setNull(idx, Types.REAL);
+        if (val != null) ps.setDouble(idx, val);
+        else ps.setNull(idx, Types.REAL);
     }
 
     private NotaProduto mapear(ResultSet rs) throws SQLException {
@@ -64,9 +95,9 @@ public class NotaProdutoDAO {
         np.setNotaId(rs.getInt("nota_id"));
         np.setProdutoId(rs.getInt("produto_id"));
         np.setProdutoDescricao(rs.getString("produto_descricao"));
-        np.setQuantidade(rs.getObject("quantidade") != null ? rs.getDouble("quantidade") : null);
+        np.setQuantidade(rs.getObject("quantidade")  != null ? rs.getDouble("quantidade")  : null);
         np.setVrUnitario(rs.getObject("vr_unitario") != null ? rs.getDouble("vr_unitario") : null);
-        np.setVrTotal(rs.getObject("vr_total") != null ? rs.getDouble("vr_total") : null);
+        np.setVrTotal(rs.getObject("vr_total")       != null ? rs.getDouble("vr_total")    : null);
         return np;
     }
 }
