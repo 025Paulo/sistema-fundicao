@@ -5,6 +5,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 
@@ -12,6 +13,9 @@ public class DatabaseManager {
 
     private static volatile DatabaseManager instance;
     private static final String DB_NAME = "fundicao.db";
+
+    /** Versão atual do schema. Incremente sempre que alterar tabelas. */
+    private static final int SCHEMA_VERSION = 2;
 
     private final String dbUrl;
     private Connection connection;
@@ -52,7 +56,6 @@ public class DatabaseManager {
     public synchronized Connection getConnection() throws SQLException {
         if (connection == null || connection.isClosed()) {
             connection = DriverManager.getConnection(dbUrl);
-
             try (Statement stmt = connection.createStatement()) {
                 stmt.execute("PRAGMA journal_mode=WAL;");
                 stmt.execute("PRAGMA foreign_keys = ON;");
@@ -74,19 +77,113 @@ public class DatabaseManager {
         }
     }
 
+    // =========================================================================
+    // Inicialização + Migração
+    // =========================================================================
+
     public void inicializar() {
         try (Statement stmt = getConnection().createStatement()) {
+            // 1. Cria tabelas que ainda não existem
             criarTabelaEntidades(stmt);
             criarTabelaProdutos(stmt);
             criarTabelaProdutoFornecedor(stmt);
             criarTabelaNotasFiscais(stmt);
             criarTabelaNotaProdutos(stmt);
             criarTabelaEstoqueMovimentacoes(stmt);
-            System.out.println("Banco inicializado com sucesso!");
+
+            // 2. Aplica migrações incrementais
+            int versaoAtual = obterVersaoSchema(stmt);
+            aplicarMigracoes(stmt, versaoAtual);
+
+            System.out.println("Banco inicializado com sucesso! Schema v" + SCHEMA_VERSION);
         } catch (SQLException e) {
             throw new RuntimeException("Erro ao inicializar banco: " + e.getMessage(), e);
         }
     }
+
+    /** Lê user_version do SQLite (0 = banco novo / legado sem versão). */
+    private int obterVersaoSchema(Statement stmt) throws SQLException {
+        try (ResultSet rs = stmt.executeQuery("PRAGMA user_version")) {
+            return rs.next() ? rs.getInt(1) : 0;
+        }
+    }
+
+    private void definirVersaoSchema(Statement stmt, int versao) throws SQLException {
+        stmt.execute("PRAGMA user_version = " + versao);
+    }
+
+    /**
+     * Aplica cada migração em sequência, partindo da versão atual do banco.
+     * Para adicionar uma migração futura: crie um novo bloco "if (v < X)" e
+     * incremente SCHEMA_VERSION.
+     */
+    private void aplicarMigracoes(Statement stmt, int versaoAtual) throws SQLException {
+
+        // ── v1 → v2 ──────────────────────────────────────────────────────────
+        // Problema: tabela nota_produtos foi criada com colunas valor_unitario /
+        // valor_total, mas o DAO usa vr_unitario / vr_total.
+        // Solução: adiciona as colunas corretas se ainda não existirem.
+        if (versaoAtual < 2) {
+            adicionarColunaSeNaoExistir(stmt, "nota_produtos", "vr_unitario",
+                    "REAL DEFAULT 0");
+            adicionarColunaSeNaoExistir(stmt, "nota_produtos", "vr_total",
+                    "REAL DEFAULT 0");
+            // Copia dados das colunas antigas para as novas (caso já existam linhas)
+            executarSilencioso(stmt,
+                    "UPDATE nota_produtos SET vr_unitario = valor_unitario WHERE vr_unitario = 0 AND valor_unitario IS NOT NULL");
+            executarSilencioso(stmt,
+                    "UPDATE nota_produtos SET vr_total = valor_total WHERE vr_total = 0 AND valor_total IS NOT NULL");
+
+            definirVersaoSchema(stmt, 2);
+            System.out.println("[DB] Migração v2 aplicada: colunas vr_unitario / vr_total adicionadas.");
+        }
+
+        // ── Adicione próximas migrações aqui ─────────────────────────────────
+        // if (versaoAtual < 3) {
+        //     ...
+        //     definirVersaoSchema(stmt, 3);
+        // }
+    }
+
+    // =========================================================================
+    // Helpers de migração
+    // =========================================================================
+
+    /**
+     * Adiciona uma coluna à tabela apenas se ela ainda não existir.
+     * Usa PRAGMA table_info para inspecionar as colunas existentes.
+     */
+    private void adicionarColunaSeNaoExistir(Statement stmt,
+                                              String tabela,
+                                              String coluna,
+                                              String definicao) throws SQLException {
+        boolean existe = false;
+        try (ResultSet rs = stmt.executeQuery("PRAGMA table_info(" + tabela + ")")) {
+            while (rs.next()) {
+                if (coluna.equalsIgnoreCase(rs.getString("name"))) {
+                    existe = true;
+                    break;
+                }
+            }
+        }
+        if (!existe) {
+            stmt.execute("ALTER TABLE " + tabela + " ADD COLUMN " + coluna + " " + definicao);
+            System.out.println("[DB] Coluna '" + coluna + "' adicionada em '" + tabela + "'.");
+        }
+    }
+
+    /** Executa SQL ignorando erros (útil para UPDATEs opcionais de migração). */
+    private void executarSilencioso(Statement stmt, String sql) {
+        try {
+            stmt.execute(sql);
+        } catch (SQLException e) {
+            System.err.println("[DB] Aviso na migração (ignorado): " + e.getMessage());
+        }
+    }
+
+    // =========================================================================
+    // Criação de tabelas
+    // =========================================================================
 
     private void criarTabelaEntidades(Statement stmt) throws SQLException {
         stmt.execute("""
@@ -160,16 +257,16 @@ public class DatabaseManager {
     }
 
     private void criarTabelaNotaProdutos(Statement stmt) throws SQLException {
+        // Tabela criada com as colunas corretas (vr_unitario / vr_total).
+        // Bancos antigos com valor_unitario / valor_total são migrados em aplicarMigracoes().
         stmt.execute("""
             CREATE TABLE IF NOT EXISTS nota_produtos (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                nota_id INTEGER NOT NULL REFERENCES notas_fiscais(id) ON DELETE CASCADE,
-                produto_id INTEGER NOT NULL REFERENCES produtos(id),
-                codigo TEXT,
-                valor_unitario REAL NOT NULL,
-                unidade_medida TEXT,
-                quantidade REAL NOT NULL,
-                valor_total REAL
+                id          INTEGER PRIMARY KEY AUTOINCREMENT,
+                nota_id     INTEGER NOT NULL REFERENCES notas_fiscais(id) ON DELETE CASCADE,
+                produto_id  INTEGER NOT NULL REFERENCES produtos(id),
+                quantidade  REAL    DEFAULT 0,
+                vr_unitario REAL    DEFAULT 0,
+                vr_total    REAL    DEFAULT 0
             )
         """);
     }
