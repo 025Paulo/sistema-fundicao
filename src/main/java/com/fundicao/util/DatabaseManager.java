@@ -15,7 +15,7 @@ public class DatabaseManager {
     private static final String DB_NAME = "fundicao.db";
 
     /** Versão atual do schema. Incremente sempre que alterar tabelas. */
-    private static final int SCHEMA_VERSION = 2;
+    private static final int SCHEMA_VERSION = 3;
 
     private final String dbUrl;
     private Connection connection;
@@ -83,7 +83,6 @@ public class DatabaseManager {
 
     public void inicializar() {
         try (Statement stmt = getConnection().createStatement()) {
-            // 1. Cria tabelas que ainda não existem
             criarTabelaEntidades(stmt);
             criarTabelaProdutos(stmt);
             criarTabelaProdutoFornecedor(stmt);
@@ -91,7 +90,6 @@ public class DatabaseManager {
             criarTabelaNotaProdutos(stmt);
             criarTabelaEstoqueMovimentacoes(stmt);
 
-            // 2. Aplica migrações incrementais
             int versaoAtual = obterVersaoSchema(stmt);
             aplicarMigracoes(stmt, versaoAtual);
 
@@ -101,7 +99,6 @@ public class DatabaseManager {
         }
     }
 
-    /** Lê user_version do SQLite (0 = banco novo / legado sem versão). */
     private int obterVersaoSchema(Statement stmt) throws SQLException {
         try (ResultSet rs = stmt.executeQuery("PRAGMA user_version")) {
             return rs.next() ? rs.getInt(1) : 0;
@@ -112,47 +109,86 @@ public class DatabaseManager {
         stmt.execute("PRAGMA user_version = " + versao);
     }
 
-    /**
-     * Aplica cada migração em sequência, partindo da versão atual do banco.
-     * Para adicionar uma migração futura: crie um novo bloco "if (v < X)" e
-     * incremente SCHEMA_VERSION.
-     */
     private void aplicarMigracoes(Statement stmt, int versaoAtual) throws SQLException {
 
-        // ── v1 → v2 ──────────────────────────────────────────────────────────
-        // Problema: tabela nota_produtos foi criada com colunas valor_unitario /
-        // valor_total, mas o DAO usa vr_unitario / vr_total.
-        // Solução: adiciona as colunas corretas se ainda não existirem.
+        // ── v0/v1 → v2 ──────────────────────────────────────────────────────
+        // Adicionava vr_unitario / vr_total como colunas extras.
+        // Mantido para bancos que nunca rodaram v2.
         if (versaoAtual < 2) {
-            adicionarColunaSeNaoExistir(stmt, "nota_produtos", "vr_unitario",
-                    "REAL DEFAULT 0");
-            adicionarColunaSeNaoExistir(stmt, "nota_produtos", "vr_total",
-                    "REAL DEFAULT 0");
-            // Copia dados das colunas antigas para as novas (caso já existam linhas)
+            adicionarColunaSeNaoExistir(stmt, "nota_produtos", "vr_unitario", "REAL DEFAULT 0");
+            adicionarColunaSeNaoExistir(stmt, "nota_produtos", "vr_total",    "REAL DEFAULT 0");
             executarSilencioso(stmt,
-                    "UPDATE nota_produtos SET vr_unitario = valor_unitario WHERE vr_unitario = 0 AND valor_unitario IS NOT NULL");
+                "UPDATE nota_produtos SET vr_unitario = valor_unitario WHERE vr_unitario = 0 AND valor_unitario IS NOT NULL");
             executarSilencioso(stmt,
-                    "UPDATE nota_produtos SET vr_total = valor_total WHERE vr_total = 0 AND valor_total IS NOT NULL");
-
+                "UPDATE nota_produtos SET vr_total = valor_total WHERE vr_total = 0 AND valor_total IS NOT NULL");
             definirVersaoSchema(stmt, 2);
-            System.out.println("[DB] Migração v2 aplicada: colunas vr_unitario / vr_total adicionadas.");
+            System.out.println("[DB] Migração v2 aplicada.");
+        }
+
+        // ── v2 → v3 ──────────────────────────────────────────────────────────
+        // Problema: a tabela nota_produtos original tinha valor_unitario NOT NULL
+        // e valor_total NOT NULL, bloqueando INSERTs que não preenchem essas colunas.
+        // No SQLite não é possível remover NOT NULL via ALTER TABLE —
+        // a solução é recriar a tabela com o schema correto.
+        if (versaoAtual < 3) {
+            recriarNotaProdutos(stmt);
+            definirVersaoSchema(stmt, 3);
+            System.out.println("[DB] Migração v3 aplicada: nota_produtos recriada sem NOT NULL.");
         }
 
         // ── Adicione próximas migrações aqui ─────────────────────────────────
-        // if (versaoAtual < 3) {
+        // if (versaoAtual < 4) {
         //     ...
-        //     definirVersaoSchema(stmt, 3);
+        //     definirVersaoSchema(stmt, 4);
         // }
+    }
+
+    /**
+     * Recria a tabela nota_produtos usando a técnica padrão do SQLite:
+     * 1. Renomeia a tabela antiga para _backup
+     * 2. Cria a nova tabela com o schema correto (sem NOT NULL nas colunas de valores)
+     * 3. Copia os dados preservando vr_unitario / vr_total (ou valor_unitario / valor_total como fallback)
+     * 4. Remove o backup
+     */
+    private void recriarNotaProdutos(Statement stmt) throws SQLException {
+        stmt.execute("PRAGMA foreign_keys = OFF");
+        try {
+            stmt.execute("ALTER TABLE nota_produtos RENAME TO nota_produtos_backup");
+
+            stmt.execute("""
+                CREATE TABLE nota_produtos (
+                    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+                    nota_id     INTEGER NOT NULL REFERENCES notas_fiscais(id) ON DELETE CASCADE,
+                    produto_id  INTEGER NOT NULL REFERENCES produtos(id),
+                    quantidade  REAL DEFAULT 0,
+                    vr_unitario REAL DEFAULT 0,
+                    vr_total    REAL DEFAULT 0
+                )
+            """);
+
+            // Copia dados: usa vr_unitario se existir, senão tenta valor_unitario (legado)
+            executarSilencioso(stmt, """
+                INSERT INTO nota_produtos (id, nota_id, produto_id, quantidade, vr_unitario, vr_total)
+                SELECT
+                    id,
+                    nota_id,
+                    produto_id,
+                    COALESCE(quantidade,   0),
+                    COALESCE(vr_unitario,  valor_unitario, 0),
+                    COALESCE(vr_total,     valor_total,    0)
+                FROM nota_produtos_backup
+            """);
+
+            stmt.execute("DROP TABLE nota_produtos_backup");
+        } finally {
+            stmt.execute("PRAGMA foreign_keys = ON");
+        }
     }
 
     // =========================================================================
     // Helpers de migração
     // =========================================================================
 
-    /**
-     * Adiciona uma coluna à tabela apenas se ela ainda não existir.
-     * Usa PRAGMA table_info para inspecionar as colunas existentes.
-     */
     private void adicionarColunaSeNaoExistir(Statement stmt,
                                               String tabela,
                                               String coluna,
@@ -172,7 +208,6 @@ public class DatabaseManager {
         }
     }
 
-    /** Executa SQL ignorando erros (útil para UPDATEs opcionais de migração). */
     private void executarSilencioso(Statement stmt, String sql) {
         try {
             stmt.execute(sql);
@@ -257,16 +292,14 @@ public class DatabaseManager {
     }
 
     private void criarTabelaNotaProdutos(Statement stmt) throws SQLException {
-        // Tabela criada com as colunas corretas (vr_unitario / vr_total).
-        // Bancos antigos com valor_unitario / valor_total são migrados em aplicarMigracoes().
         stmt.execute("""
             CREATE TABLE IF NOT EXISTS nota_produtos (
                 id          INTEGER PRIMARY KEY AUTOINCREMENT,
                 nota_id     INTEGER NOT NULL REFERENCES notas_fiscais(id) ON DELETE CASCADE,
                 produto_id  INTEGER NOT NULL REFERENCES produtos(id),
-                quantidade  REAL    DEFAULT 0,
-                vr_unitario REAL    DEFAULT 0,
-                vr_total    REAL    DEFAULT 0
+                quantidade  REAL DEFAULT 0,
+                vr_unitario REAL DEFAULT 0,
+                vr_total    REAL DEFAULT 0
             )
         """);
     }
