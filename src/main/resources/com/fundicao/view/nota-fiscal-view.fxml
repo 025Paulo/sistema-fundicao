@@ -28,61 +28,89 @@
 
     <Region prefHeight="16"/>
 
-    <TableView fx:id="tabela" VBox.vgrow="ALWAYS" styleClass="table-view">
-        <columns>
-            <TableColumn fx:id="colNumero"        text="Número"               prefWidth="120"/>
-            <TableColumn fx:id="colNatureza"      text="Natureza"             prefWidth="110"/>
-            <TableColumn fx:id="colData"          text="Data"                 prefWidth="110"/>
-            <TableColumn fx:id="colEntidade"      text="Fornecedor / Cliente" prefWidth="240"/>
-            <TableColumn fx:id="colPesoLiquido"   text="Peso Líquido"         prefWidth="120"/>
-            <TableColumn fx:id="colTransportadora" text="Transportadora"      prefWidth="180"/>
-        </columns>
-        <placeholder>
-            <Label text="Nenhuma nota fiscal cadastrada."
-                   style="-fx-text-fill: #9CA3AF; -fx-font-size: 13px;"/>
-        </placeholder>
-    </TableView>
+    <!-- ScrollPane envolvendo tabela principal + painel de detalhes -->
+    <ScrollPane fx:id="scrollConteudo" fitToWidth="true" VBox.vgrow="ALWAYS"
+                style="-fx-background-color: transparent;">
+        <VBox spacing="0">
 
-    <!-- Painel de detalhes (começa oculto) -->
-    <VBox fx:id="painelDetalhes" styleClass="detalhe-painel" managed="false" visible="false">
-        <HBox alignment="CENTER_LEFT" spacing="6" styleClass="detalhe-header">
-            <FontIcon iconLiteral="mdi2i-information-outline" iconSize="14"
-                      style="-fx-fill: #6B7280;"/>
-            <Label fx:id="labelTituloDetalhe" styleClass="detalhe-titulo"/>
-            <Region HBox.hgrow="ALWAYS"/>
-            <Button fx:id="btnFecharDetalhe" text="✕" styleClass="btn-fechar"
-                    onAction="#fecharDetalhes"/>
-        </HBox>
+            <TableView fx:id="tabela" prefHeight="260" styleClass="table-view">
+                <columns>
+                    <TableColumn fx:id="colNumero"        text="Número"               prefWidth="120"/>
+                    <TableColumn fx:id="colNatureza"      text="Natureza"             prefWidth="110"/>
+                    <TableColumn fx:id="colData"          text="Data"                 prefWidth="110"/>
+                    <TableColumn fx:id="colEntidade"      text="Fornecedor / Cliente" prefWidth="240"/>
+                    <TableColumn fx:id="colPesoLiquido"   text="Peso Líquido"         prefWidth="120"/>
+                    <TableColumn fx:id="colTransportadora" text="Transportadora"      prefWidth="180"/>
+                </columns>
+                <placeholder>
+                    <Label text="Nenhuma nota fiscal cadastrada."
+                           style="-fx-text-fill: #9CA3AF; -fx-font-size: 13px;"/>
+                </placeholder>
+            </TableView>
 
-        <GridPane hgap="24" vgap="6" styleClass="detalhe-grid">
-            <columnConstraints>
-                <ColumnConstraints percentWidth="25"/>
-                <ColumnConstraints percentWidth="25"/>
-                <ColumnConstraints percentWidth="25"/>
-                <ColumnConstraints percentWidth="25"/>
-            </columnConstraints>
+            <!-- Painel de detalhes (começa oculto) -->
+            <VBox fx:id="painelDetalhes" styleClass="detalhe-painel" managed="false" visible="false">
+                <HBox alignment="CENTER_LEFT" spacing="6" styleClass="detalhe-header">
+                    <FontIcon iconLiteral="mdi2i-information-outline" iconSize="14"
+                              style="-fx-fill: #6B7280;"/>
+                    <Label fx:id="labelTituloDetalhe" styleClass="detalhe-titulo"/>
+                    <Region HBox.hgrow="ALWAYS"/>
+                    <Button fx:id="btnFecharDetalhe" text="✕" styleClass="btn-fechar"
+                            onAction="#fecharDetalhes"/>
+                </HBox>
 
-            <Label text="Data"           style="-fx-text-fill:#9CA3AF; -fx-font-size:11px;" GridPane.columnIndex="0" GridPane.rowIndex="0"/>
-            <Label text="Ordem de Compra" style="-fx-text-fill:#9CA3AF; -fx-font-size:11px;" GridPane.columnIndex="1" GridPane.rowIndex="0"/>
-            <Label text="Transportadora" style="-fx-text-fill:#9CA3AF; -fx-font-size:11px;" GridPane.columnIndex="2" GridPane.rowIndex="0"/>
-            <Label text="Transporte (R$)" style="-fx-text-fill:#9CA3AF; -fx-font-size:11px;" GridPane.columnIndex="3" GridPane.rowIndex="0"/>
+                <GridPane hgap="24" vgap="6" styleClass="detalhe-grid">
+                    <columnConstraints>
+                        <ColumnConstraints percentWidth="25"/>
+                        <ColumnConstraints percentWidth="25"/>
+                        <ColumnConstraints percentWidth="25"/>
+                        <ColumnConstraints percentWidth="25"/>
+                    </columnConstraints>
 
-            <Label fx:id="dData"          styleClass="detalhe-valor" GridPane.columnIndex="0" GridPane.rowIndex="1"/>
-            <Label fx:id="dOrdemCompra"   styleClass="detalhe-valor" GridPane.columnIndex="1" GridPane.rowIndex="1"/>
-            <Label fx:id="dTransportadora" styleClass="detalhe-valor" GridPane.columnIndex="2" GridPane.rowIndex="1"/>
-            <Label fx:id="dTransporteRs"  styleClass="detalhe-valor" GridPane.columnIndex="3" GridPane.rowIndex="1"/>
+                    <Label text="Data"           style="-fx-text-fill:#9CA3AF; -fx-font-size:11px;" GridPane.columnIndex="0" GridPane.rowIndex="0"/>
+                    <Label text="Ordem de Compra" style="-fx-text-fill:#9CA3AF; -fx-font-size:11px;" GridPane.columnIndex="1" GridPane.rowIndex="0"/>
+                    <Label text="Transportadora" style="-fx-text-fill:#9CA3AF; -fx-font-size:11px;" GridPane.columnIndex="2" GridPane.rowIndex="0"/>
+                    <Label text="Transporte (R$)" style="-fx-text-fill:#9CA3AF; -fx-font-size:11px;" GridPane.columnIndex="3" GridPane.rowIndex="0"/>
 
-            <Label text="Peso Bruto"    style="-fx-text-fill:#9CA3AF; -fx-font-size:11px;" GridPane.columnIndex="0" GridPane.rowIndex="2"/>
-            <Label text="Peso Líquido"  style="-fx-text-fill:#9CA3AF; -fx-font-size:11px;" GridPane.columnIndex="1" GridPane.rowIndex="2"/>
-            <Label text="Desconto (R$)" style="-fx-text-fill:#9CA3AF; -fx-font-size:11px;" GridPane.columnIndex="2" GridPane.rowIndex="2"/>
-            <Label text="Entidade"      style="-fx-text-fill:#9CA3AF; -fx-font-size:11px;" GridPane.columnIndex="3" GridPane.rowIndex="2"/>
+                    <Label fx:id="dData"          styleClass="detalhe-valor" GridPane.columnIndex="0" GridPane.rowIndex="1"/>
+                    <Label fx:id="dOrdemCompra"   styleClass="detalhe-valor" GridPane.columnIndex="1" GridPane.rowIndex="1"/>
+                    <Label fx:id="dTransportadora" styleClass="detalhe-valor" GridPane.columnIndex="2" GridPane.rowIndex="1"/>
+                    <Label fx:id="dTransporteRs"  styleClass="detalhe-valor" GridPane.columnIndex="3" GridPane.rowIndex="1"/>
 
-            <Label fx:id="dPesoBruto"   styleClass="detalhe-valor" GridPane.columnIndex="0" GridPane.rowIndex="3"/>
-            <Label fx:id="dPesoLiquido" styleClass="detalhe-valor" GridPane.columnIndex="1" GridPane.rowIndex="3"/>
-            <Label fx:id="dDescontoRs"  styleClass="detalhe-valor" GridPane.columnIndex="2" GridPane.rowIndex="3"/>
-            <Label fx:id="dEntidade"    styleClass="detalhe-valor" GridPane.columnIndex="3" GridPane.rowIndex="3"/>
-        </GridPane>
-    </VBox>
+                    <Label text="Peso Bruto"    style="-fx-text-fill:#9CA3AF; -fx-font-size:11px;" GridPane.columnIndex="0" GridPane.rowIndex="2"/>
+                    <Label text="Peso Líquido"  style="-fx-text-fill:#9CA3AF; -fx-font-size:11px;" GridPane.columnIndex="1" GridPane.rowIndex="2"/>
+                    <Label text="Desconto (R$)" style="-fx-text-fill:#9CA3AF; -fx-font-size:11px;" GridPane.columnIndex="2" GridPane.rowIndex="2"/>
+                    <Label text="Entidade"      style="-fx-text-fill:#9CA3AF; -fx-font-size:11px;" GridPane.columnIndex="3" GridPane.rowIndex="2"/>
+
+                    <Label fx:id="dPesoBruto"   styleClass="detalhe-valor" GridPane.columnIndex="0" GridPane.rowIndex="3"/>
+                    <Label fx:id="dPesoLiquido" styleClass="detalhe-valor" GridPane.columnIndex="1" GridPane.rowIndex="3"/>
+                    <Label fx:id="dDescontoRs"  styleClass="detalhe-valor" GridPane.columnIndex="2" GridPane.rowIndex="3"/>
+                    <Label fx:id="dEntidade"    styleClass="detalhe-valor" GridPane.columnIndex="3" GridPane.rowIndex="3"/>
+                </GridPane>
+
+                <!-- Tabela de produtos da nota -->
+                <Label text="Produtos da Nota"
+                       style="-fx-font-size:11px; -fx-font-weight:bold; -fx-text-fill:#6B7280; -fx-padding:10 0 4 0;"/>
+                <TableView fx:id="tabelaProdutosDetalhe"
+                           prefHeight="180"
+                           style="-fx-font-size:12px;">
+                    <columns>
+                        <TableColumn fx:id="detColProduto"    text="Produto"      prefWidth="280"/>
+                        <TableColumn fx:id="detColQuantidade" text="Quantidade"   prefWidth="110"/>
+                        <TableColumn fx:id="detColUnitario"   text="Vr Unitário"  prefWidth="120"/>
+                        <TableColumn fx:id="detColTotal"      text="Vr Total"     prefWidth="120"/>
+                    </columns>
+                    <placeholder>
+                        <Label text="Nenhum produto nesta nota."
+                               style="-fx-text-fill: #9CA3AF; -fx-font-size: 12px;"/>
+                    </placeholder>
+                </TableView>
+
+                <Region prefHeight="12"/>
+            </VBox>
+
+        </VBox>
+    </ScrollPane>
 
     <HBox styleClass="filter-bar" alignment="CENTER_LEFT" spacing="16"
           style="-fx-padding: 10 16 10 16;">

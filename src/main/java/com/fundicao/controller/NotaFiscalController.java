@@ -2,6 +2,7 @@ package com.fundicao.controller;
 
 import com.fundicao.dao.NotaProdutoDAO;
 import com.fundicao.model.NotaFiscal;
+import com.fundicao.model.NotaProduto;
 import com.fundicao.service.NotaFiscalService;
 import com.fundicao.util.AlertUtil;
 import javafx.animation.KeyFrame;
@@ -31,11 +32,11 @@ import java.util.List;
 
 public class NotaFiscalController {
 
-    // ── Barra de filtros ─────────────────────────────────────────────
+    // ── Barra de filtros ──────────────────────────────────────────────
     @FXML private TextField campoBusca;
     @FXML private ComboBox<String> filtroNatureza;
 
-    // ── Tabela principal ─────────────────────────────────────────────
+    // ── Tabela principal ──────────────────────────────────────────────
     @FXML private TableView<NotaFiscal> tabela;
     @FXML private TableColumn<NotaFiscal, String> colNumero;
     @FXML private TableColumn<NotaFiscal, String> colNatureza;
@@ -45,7 +46,7 @@ public class NotaFiscalController {
     @FXML private TableColumn<NotaFiscal, String> colTransportadora;
     @FXML private Label labelTotal;
 
-    // ── Painel de detalhes ───────────────────────────────────────────
+    // ── Painel de detalhes ────────────────────────────────────────────
     @FXML private VBox painelDetalhes;
     @FXML private Label labelTituloDetalhe;
     @FXML private Label dData;
@@ -57,8 +58,16 @@ public class NotaFiscalController {
     @FXML private Label dDescontoRs;
     @FXML private Label dEntidade;
 
+    // ── Tabela de produtos no painel de detalhes ──────────────────────
+    @FXML private TableView<NotaProduto> tabelaProdutosDetalhe;
+    @FXML private TableColumn<NotaProduto, String> detColProduto;
+    @FXML private TableColumn<NotaProduto, String> detColQuantidade;
+    @FXML private TableColumn<NotaProduto, String> detColUnitario;
+    @FXML private TableColumn<NotaProduto, String> detColTotal;
+
     private final NotaFiscalService service = new NotaFiscalService();
     private final ObservableList<NotaFiscal> dados = FXCollections.observableArrayList();
+    private final ObservableList<NotaProduto> produtosDetalhe = FXCollections.observableArrayList();
     private List<NotaFiscal> todasAsNotas;
 
     private final NotaProdutoDAO notaProdutoDAO = new NotaProdutoDAO();
@@ -73,7 +82,7 @@ public class NotaFiscalController {
 
     @FXML
     public void initialize() {
-        // Colunas
+        // Colunas da tabela principal
         colNumero.setCellValueFactory(c ->
                 new SimpleStringProperty(nvl(c.getValue().getNumero())));
         colNatureza.setCellValueFactory(c ->
@@ -94,6 +103,23 @@ public class NotaFiscalController {
         tabela.setItems(dados);
         tabela.getSelectionModel().setCellSelectionEnabled(true);
         configurarCopiar(tabela);
+
+        // Colunas da tabela de produtos no detalhe
+        detColProduto.setCellValueFactory(c ->
+                new SimpleStringProperty(nvl(c.getValue().getProdutoDescricao())));
+        detColQuantidade.setCellValueFactory(c -> {
+            Double q = c.getValue().getQuantidade();
+            return new SimpleStringProperty(q != null ? String.format("%.2f", q) : "—");
+        });
+        detColUnitario.setCellValueFactory(c -> {
+            Double v = c.getValue().getVrUnitario();
+            return new SimpleStringProperty(v != null ? String.format("R$ %.2f", v) : "—");
+        });
+        detColTotal.setCellValueFactory(c -> {
+            Double v = c.getValue().getVrTotal();
+            return new SimpleStringProperty(v != null ? String.format("R$ %.2f", v) : "—");
+        });
+        tabelaProdutosDetalhe.setItems(produtosDetalhe);
 
         // Filtro de natureza
         filtroNatureza.setItems(FXCollections.observableArrayList(
@@ -151,8 +177,6 @@ public class NotaFiscalController {
         }
     }
 
-
-
     private void filtrar(String termo) {
         if (todasAsNotas == null) return;
         String lower = (termo == null) ? "" : termo.toLowerCase();
@@ -183,6 +207,14 @@ public class NotaFiscalController {
                 ? String.format("R$ %.2f", nf.getDescontoRs()) : "—");
         dEntidade.setText(nvl(nf.getEntidadeNome()));
 
+        // Carrega os produtos da nota na tabela de detalhes
+        try {
+            produtosDetalhe.setAll(notaProdutoDAO.listarPorNota(nf.getId()));
+        } catch (SQLException e) {
+            produtosDetalhe.clear();
+            System.err.println("Erro ao carregar produtos da nota: " + e.getMessage());
+        }
+
         if (!painelDetalhes.isVisible()) {
             painelDetalhes.setVisible(true);
             painelDetalhes.setManaged(true);
@@ -202,12 +234,13 @@ public class NotaFiscalController {
         tl.setOnFinished(e -> {
             painelDetalhes.setVisible(false);
             painelDetalhes.setManaged(false);
+            produtosDetalhe.clear();
             tabela.getSelectionModel().clearSelection();
         });
         tl.play();
     }
 
-    // ── Ações ────────────────────────────────────────────────────────
+    // ── Ações ─────────────────────────────────────────────────────────
     @FXML private void adicionar()   { abrirDialog(null); }
     @FXML private void novaNota()    { abrirDialog(null); }
 
@@ -235,7 +268,7 @@ public class NotaFiscalController {
     }
     @FXML private void excluirNota() { excluir(); }
 
-    // ── Dialog ───────────────────────────────────────────────────────
+    // ── Dialog ────────────────────────────────────────────────────────
     private void abrirDialog(NotaFiscal nf) {
         try {
             FXMLLoader loader = new FXMLLoader(
