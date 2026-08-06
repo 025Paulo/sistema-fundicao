@@ -4,12 +4,12 @@
 
 <ScrollPane xmlns="http://javafx.com/javafx/17"
             xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="com.fundicao.controller.NotaFiscalDialogController"
             fitToWidth="true"
             maxHeight="780"
             style="-fx-padding: 0;">
 
-    <VBox fx:controller="com.fundicao.controller.NotaFiscalDialogController"
-          spacing="10" style="-fx-padding: 16; -fx-min-width: 700; -fx-max-width: 820;">
+    <VBox spacing="10" style="-fx-padding: 16; -fx-min-width: 700; -fx-max-width: 820;">
 
         <Label fx:id="labelTitulo" text="Nova Nota Fiscal"
                style="-fx-font-size: 14px; -fx-font-weight: bold;"/>
