@@ -95,10 +95,11 @@
                            prefHeight="180"
                            style="-fx-font-size:12px;">
                     <columns>
-                        <TableColumn fx:id="detColProduto"    text="Produto"      prefWidth="280"/>
-                        <TableColumn fx:id="detColQuantidade" text="Quantidade"   prefWidth="110"/>
-                        <TableColumn fx:id="detColUnitario"   text="Vr Unitário"  prefWidth="120"/>
-                        <TableColumn fx:id="detColTotal"      text="Vr Total"     prefWidth="120"/>
+                        <TableColumn fx:id="detColProduto" text="Produto" prefWidth="260"/>
+                        <TableColumn fx:id="detColUnidade" text="Unidade" prefWidth="90"/>
+                        <TableColumn fx:id="detColQuantidade" text="Quantidade" prefWidth="110"/>
+                        <TableColumn fx:id="detColUnitario" text="Vr Unitário" prefWidth="120"/>
+                        <TableColumn fx:id="detColTotal" text="Vr Total" prefWidth="120"/>
                     </columns>
                     <placeholder>
                         <Label text="Nenhum produto nesta nota."

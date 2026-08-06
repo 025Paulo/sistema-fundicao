@@ -15,7 +15,7 @@ public class DatabaseManager {
     private static final String DB_NAME = "fundicao.db";
 
     /** Versão atual do schema. Incremente sempre que alterar tabelas. */
-    private static final int SCHEMA_VERSION = 3;
+    private static final int SCHEMA_VERSION = 4;
 
     private final String dbUrl;
     private Connection connection;
@@ -130,10 +130,10 @@ public class DatabaseManager {
         // e valor_total NOT NULL, bloqueando INSERTs que não preenchem essas colunas.
         // No SQLite não é possível remover NOT NULL via ALTER TABLE —
         // a solução é recriar a tabela com o schema correto.
-        if (versaoAtual < 3) {
-            recriarNotaProdutos(stmt);
-            definirVersaoSchema(stmt, 3);
-            System.out.println("[DB] Migração v3 aplicada: nota_produtos recriada sem NOT NULL.");
+        if (versaoAtual < 4) {
+            adicionarColunaSeNaoExistir(stmt, "nota_produtos", "unidade_medida", "TEXT DEFAULT 'UND'");
+            definirVersaoSchema(stmt, 4);
+            System.out.println("[DB] Migração v4 aplicada: coluna unidade_medida adicionada.");
         }
 
         // ── Adicione próximas migrações aqui ─────────────────────────────────
@@ -293,15 +293,16 @@ public class DatabaseManager {
 
     private void criarTabelaNotaProdutos(Statement stmt) throws SQLException {
         stmt.execute("""
-            CREATE TABLE IF NOT EXISTS nota_produtos (
-                id          INTEGER PRIMARY KEY AUTOINCREMENT,
-                nota_id     INTEGER NOT NULL REFERENCES notas_fiscais(id) ON DELETE CASCADE,
-                produto_id  INTEGER NOT NULL REFERENCES produtos(id),
-                quantidade  REAL DEFAULT 0,
-                vr_unitario REAL DEFAULT 0,
-                vr_total    REAL DEFAULT 0
-            )
-        """);
+        CREATE TABLE IF NOT EXISTS nota_produtos (
+            id             INTEGER PRIMARY KEY AUTOINCREMENT,
+            nota_id        INTEGER NOT NULL REFERENCES notas_fiscais(id) ON DELETE CASCADE,
+            produto_id     INTEGER NOT NULL REFERENCES produtos(id),
+            quantidade     REAL DEFAULT 0,
+            vr_unitario    REAL DEFAULT 0,
+            vr_total       REAL DEFAULT 0,
+            unidade_medida TEXT DEFAULT 'UND'
+        )
+    """);
     }
 
     private void criarTabelaEstoqueMovimentacoes(Statement stmt) throws SQLException {

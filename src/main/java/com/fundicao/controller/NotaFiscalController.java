@@ -61,6 +61,7 @@ public class NotaFiscalController {
     // ── Tabela de produtos no painel de detalhes ──────────────────────
     @FXML private TableView<NotaProduto> tabelaProdutosDetalhe;
     @FXML private TableColumn<NotaProduto, String> detColProduto;
+    @FXML private TableColumn<NotaProduto, String> detColUnidade;
     @FXML private TableColumn<NotaProduto, String> detColQuantidade;
     @FXML private TableColumn<NotaProduto, String> detColUnitario;
     @FXML private TableColumn<NotaProduto, String> detColTotal;
@@ -107,6 +108,10 @@ public class NotaFiscalController {
         // Colunas da tabela de produtos no detalhe
         detColProduto.setCellValueFactory(c ->
                 new SimpleStringProperty(nvl(c.getValue().getProdutoDescricao())));
+        detColUnidade.setCellValueFactory(c ->
+                new SimpleStringProperty(
+                        c.getValue().getUnidadeMedida() != null ? c.getValue().getUnidadeMedida() : "UND"
+                ));
         detColQuantidade.setCellValueFactory(c -> {
             Double q = c.getValue().getQuantidade();
             return new SimpleStringProperty(q != null ? String.format("%.2f", q) : "—");
@@ -207,7 +212,6 @@ public class NotaFiscalController {
                 ? String.format("R$ %.2f", nf.getDescontoRs()) : "—");
         dEntidade.setText(nvl(nf.getEntidadeNome()));
 
-        // Carrega os produtos da nota na tabela de detalhes
         try {
             produtosDetalhe.setAll(notaProdutoDAO.listarPorNota(nf.getId()));
         } catch (SQLException e) {
@@ -247,15 +251,22 @@ public class NotaFiscalController {
     @FXML
     private void alterar() {
         NotaFiscal sel = tabela.getSelectionModel().getSelectedItem();
-        if (sel == null) { AlertUtil.aviso("Selecione uma nota fiscal para alterar."); return; }
+        if (sel == null) {
+            AlertUtil.aviso("Selecione uma nota fiscal para alterar.");
+            return;
+        }
         abrirDialog(sel);
     }
+
     @FXML private void alterarNota() { alterar(); }
 
     @FXML
     private void excluir() {
         NotaFiscal sel = tabela.getSelectionModel().getSelectedItem();
-        if (sel == null) { AlertUtil.aviso("Selecione uma nota fiscal para excluir."); return; }
+        if (sel == null) {
+            AlertUtil.aviso("Selecione uma nota fiscal para excluir.");
+            return;
+        }
         if (AlertUtil.confirmar("Excluir NF \"" + nvl(sel.getNumero()) + "\"?")) {
             try {
                 service.excluir(sel.getId());
@@ -266,6 +277,7 @@ public class NotaFiscalController {
             }
         }
     }
+
     @FXML private void excluirNota() { excluir(); }
 
     // ── Dialog ────────────────────────────────────────────────────────
@@ -289,5 +301,7 @@ public class NotaFiscalController {
         }
     }
 
-    private String nvl(String s) { return (s == null || s.isBlank()) ? "—" : s; }
+    private String nvl(String s) {
+        return (s == null || s.isBlank()) ? "—" : s;
+    }
 }

@@ -36,6 +36,9 @@ public class NotaFiscalDialogController {
     @FXML private TextField          campoPesoBruto;
     @FXML private TextField          campoPesoLiquido;
     @FXML private Button             btnSalvar;
+    @FXML private TableColumn<NotaProduto, String> colProdUnidade;
+    @FXML private ComboBox<String> comboUnidade;
+
 
     // ── Tabela de produtos da nota ──────────────────────────────────────────
     @FXML private TableView<NotaProduto>           tabelaProdutos;
@@ -74,6 +77,10 @@ public class NotaFiscalDialogController {
                 new SimpleStringProperty(fmtM(c.getValue().getVrUnitario())));
         colProdVrTotal.setCellValueFactory(c ->
                 new SimpleStringProperty(fmtM(c.getValue().getVrTotal())));
+        colProdUnidade.setCellValueFactory(c -> {
+            String un = c.getValue().getUnidadeMedida();
+            return new SimpleStringProperty(un != null ? un : "UND");
+        });
         tabelaProdutos.setItems(produtos);
 
         // auto-calcula Vr Total ao sair dos campos Qtd ou VrUnit
@@ -86,6 +93,8 @@ public class NotaFiscalDialogController {
 
         carregarEntidades();
         carregarProdutos();
+        comboUnidade.setItems(FXCollections.observableArrayList("UND", "KG", "PC", "CJ"));
+        comboUnidade.setValue("UND");
     }
 
     // ── Carregamentos ───────────────────────────────────────────────────────
@@ -165,12 +174,14 @@ public class NotaFiscalDialogController {
         np.setQuantidade(parseDouble(campoQtd.getText()));
         np.setVrUnitario(parseDouble(campoVrUnit.getText()));
         np.setVrTotal(parseDouble(campoVrTotalItem.getText()));
+        np.setUnidadeMedida(comboUnidade.getValue() != null ? comboUnidade.getValue() : "UND");
         produtos.add(np);
 
         comboProduto.setValue(null);
         campoQtd.clear();
         campoVrUnit.clear();
         campoVrTotalItem.clear();
+        comboUnidade.setValue("UND");
     }
 
     @FXML

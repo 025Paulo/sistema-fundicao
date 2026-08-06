@@ -8,8 +8,8 @@ public class NotaProduto {
     private Double quantidade;
     private Double vrUnitario;
     private Double vrTotal;
+    private String unidadeMedida; // NOVO
 
-    // getters e setters...
     public int getId() { return id; }
     public void setId(int id) { this.id = id; }
     public int getNotaId() { return notaId; }
@@ -24,4 +24,6 @@ public class NotaProduto {
     public void setVrUnitario(Double vrUnitario) { this.vrUnitario = vrUnitario; }
     public Double getVrTotal() { return vrTotal; }
     public void setVrTotal(Double vrTotal) { this.vrTotal = vrTotal; }
+    public String getUnidadeMedida() { return unidadeMedida; }
+    public void setUnidadeMedida(String unidadeMedida) { this.unidadeMedida = unidadeMedida; }
 }

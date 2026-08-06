@@ -29,17 +29,14 @@ public class NotaProdutoDAO {
     }
 
     public void salvar(NotaProduto np) throws SQLException {
-        if (np.getId() > 0) {
-            atualizar(np);
-        } else {
-            inserir(np);
-        }
+        if (np.getId() > 0) atualizar(np);
+        else inserir(np);
     }
 
     private void inserir(NotaProduto np) throws SQLException {
         String sql = """
-            INSERT INTO nota_produtos (nota_id, produto_id, quantidade, vr_unitario, vr_total)
-            VALUES (?, ?, ?, ?, ?)
+            INSERT INTO nota_produtos (nota_id, produto_id, quantidade, vr_unitario, vr_total, unidade_medida)
+            VALUES (?, ?, ?, ?, ?, ?)
         """;
         try (PreparedStatement ps = getConnection().prepareStatement(sql)) {
             ps.setInt(1, np.getNotaId());
@@ -47,6 +44,7 @@ public class NotaProdutoDAO {
             setDoubleOrNull(ps, 3, np.getQuantidade());
             setDoubleOrNull(ps, 4, np.getVrUnitario());
             setDoubleOrNull(ps, 5, np.getVrTotal());
+            ps.setString(6, np.getUnidadeMedida() != null ? np.getUnidadeMedida() : "UND");
             ps.executeUpdate();
         }
     }
@@ -54,16 +52,18 @@ public class NotaProdutoDAO {
     private void atualizar(NotaProduto np) throws SQLException {
         String sql = """
             UPDATE nota_produtos
-            SET quantidade  = ?,
-                vr_unitario = ?,
-                vr_total    = ?
+            SET quantidade     = ?,
+                vr_unitario    = ?,
+                vr_total       = ?,
+                unidade_medida = ?
             WHERE id = ?
         """;
         try (PreparedStatement ps = getConnection().prepareStatement(sql)) {
             setDoubleOrNull(ps, 1, np.getQuantidade());
             setDoubleOrNull(ps, 2, np.getVrUnitario());
             setDoubleOrNull(ps, 3, np.getVrTotal());
-            ps.setInt(4, np.getId());
+            ps.setString(4, np.getUnidadeMedida() != null ? np.getUnidadeMedida() : "UND");
+            ps.setInt(5, np.getId());
             ps.executeUpdate();
         }
     }
@@ -98,6 +98,7 @@ public class NotaProdutoDAO {
         np.setQuantidade(rs.getObject("quantidade")  != null ? rs.getDouble("quantidade")  : null);
         np.setVrUnitario(rs.getObject("vr_unitario") != null ? rs.getDouble("vr_unitario") : null);
         np.setVrTotal(rs.getObject("vr_total")       != null ? rs.getDouble("vr_total")    : null);
+        np.setUnidadeMedida(rs.getString("unidade_medida"));
         return np;
     }
 }

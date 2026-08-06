@@ -5,7 +5,7 @@
 <VBox xmlns="http://javafx.com/javafx/17"
       xmlns:fx="http://javafx.com/fxml/1"
       fx:controller="com.fundicao.controller.NotaFiscalDialogController"
-      spacing="16" style="-fx-padding: 24; -fx-min-width: 700;">
+      spacing="16" style="-fx-padding: 24; -fx-min-width: 760;">
 
     <Label fx:id="labelTitulo" text="Nova Nota Fiscal"
            style="-fx-font-size: 16px; -fx-font-weight: bold;"/>
@@ -67,10 +67,11 @@
 
     <TableView fx:id="tabelaProdutos" prefHeight="140" styleClass="table-view">
         <columns>
-            <TableColumn fx:id="colProdNome"    text="Produto"       prefWidth="260"/>
-            <TableColumn fx:id="colProdQtd"     text="Quantidade"    prefWidth="100"/>
-            <TableColumn fx:id="colProdVrUnit"  text="Vr Unitário"   prefWidth="110"/>
-            <TableColumn fx:id="colProdVrTotal" text="Vr Total"      prefWidth="110"/>
+            <TableColumn fx:id="colProdNome"    text="Produto"     prefWidth="220"/>
+            <TableColumn fx:id="colProdUnidade" text="Unidade"     prefWidth="80"/>
+            <TableColumn fx:id="colProdQtd"     text="Quantidade"  prefWidth="100"/>
+            <TableColumn fx:id="colProdVrUnit"  text="Vr Unitário" prefWidth="110"/>
+            <TableColumn fx:id="colProdVrTotal" text="Vr Total"    prefWidth="110"/>
         </columns>
         <placeholder>
             <Label text="Nenhum produto adicionado."
@@ -83,9 +84,13 @@
             <Label text="Produto" style="-fx-font-size: 12px; -fx-text-fill: #6B7280;"/>
             <ComboBox fx:id="comboProduto" maxWidth="Infinity" styleClass="combo-box"/>
         </VBox>
-        <VBox spacing="6" prefWidth="100">
+        <VBox spacing="6" prefWidth="90">
             <Label text="Quantidade" style="-fx-font-size: 12px; -fx-text-fill: #6B7280;"/>
             <TextField fx:id="campoQtd" styleClass="text-field" promptText="0,00"/>
+        </VBox>
+        <VBox spacing="6" prefWidth="90">
+            <Label text="Unidade" style="-fx-font-size: 12px; -fx-text-fill: #6B7280;"/>
+            <ComboBox fx:id="comboUnidade" prefWidth="90"/>
         </VBox>
         <VBox spacing="6" prefWidth="110">
             <Label text="Vr Unitário" style="-fx-font-size: 12px; -fx-text-fill: #6B7280;"/>
