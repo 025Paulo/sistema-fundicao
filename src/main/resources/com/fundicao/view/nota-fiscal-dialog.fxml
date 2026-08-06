@@ -2,118 +2,123 @@
 <?import javafx.scene.layout.*?>
 <?import javafx.scene.control.*?>
 
-<VBox xmlns="http://javafx.com/javafx/17"
-      xmlns:fx="http://javafx.com/fxml/1"
-      fx:controller="com.fundicao.controller.NotaFiscalDialogController"
-      spacing="16" style="-fx-padding: 24; -fx-min-width: 760;">
+<ScrollPane xmlns="http://javafx.com/javafx/17"
+            xmlns:fx="http://javafx.com/fxml/1"
+            fitToWidth="true"
+            maxHeight="780"
+            style="-fx-padding: 0;">
 
-    <Label fx:id="labelTitulo" text="Nova Nota Fiscal"
-           style="-fx-font-size: 16px; -fx-font-weight: bold;"/>
+    <VBox fx:controller="com.fundicao.controller.NotaFiscalDialogController"
+          spacing="10" style="-fx-padding: 16; -fx-min-width: 700; -fx-max-width: 820;">
 
-    <HBox spacing="16">
-        <VBox spacing="6" HBox.hgrow="ALWAYS">
-            <Label text="Natureza *" style="-fx-font-size: 12px; -fx-text-fill: #6B7280;"/>
-            <ComboBox fx:id="comboNatureza" prefWidth="180"/>
-        </VBox>
-        <VBox spacing="6" HBox.hgrow="ALWAYS">
-            <Label text="Número *" style="-fx-font-size: 12px; -fx-text-fill: #6B7280;"/>
-            <TextField fx:id="campoNumero" styleClass="text-field"/>
-        </VBox>
-        <VBox spacing="6" HBox.hgrow="ALWAYS">
-            <Label text="Data *" style="-fx-font-size: 12px; -fx-text-fill: #6B7280;"/>
-            <DatePicker fx:id="campoData" styleClass="date-picker"/>
-        </VBox>
-    </HBox>
+        <Label fx:id="labelTitulo" text="Nova Nota Fiscal"
+               style="-fx-font-size: 14px; -fx-font-weight: bold;"/>
 
-    <VBox spacing="6">
-        <Label text="Fornecedor / Cliente" style="-fx-font-size: 12px; -fx-text-fill: #6B7280;"/>
-        <ComboBox fx:id="comboEntidade" prefWidth="400"/>
+        <HBox spacing="12">
+            <VBox spacing="4" HBox.hgrow="ALWAYS">
+                <Label text="Natureza *" style="-fx-font-size: 11px; -fx-text-fill: #6B7280;"/>
+                <ComboBox fx:id="comboNatureza" prefWidth="170"/>
+            </VBox>
+            <VBox spacing="4" HBox.hgrow="ALWAYS">
+                <Label text="Número *" style="-fx-font-size: 11px; -fx-text-fill: #6B7280;"/>
+                <TextField fx:id="campoNumero" styleClass="text-field"/>
+            </VBox>
+            <VBox spacing="4" HBox.hgrow="ALWAYS">
+                <Label text="Data *" style="-fx-font-size: 11px; -fx-text-fill: #6B7280;"/>
+                <DatePicker fx:id="campoData" styleClass="date-picker"/>
+            </VBox>
+        </HBox>
+
+        <VBox spacing="4">
+            <Label text="Fornecedor / Cliente" style="-fx-font-size: 11px; -fx-text-fill: #6B7280;"/>
+            <ComboBox fx:id="comboEntidade" prefWidth="380"/>
+        </VBox>
+
+        <HBox spacing="12">
+            <VBox spacing="4" HBox.hgrow="ALWAYS">
+                <Label text="Ordem de compra" style="-fx-font-size: 11px; -fx-text-fill: #6B7280;"/>
+                <TextField fx:id="campoOrdemCompra" styleClass="text-field"/>
+            </VBox>
+            <VBox spacing="4" HBox.hgrow="ALWAYS">
+                <Label text="Transportadora" style="-fx-font-size: 11px; -fx-text-fill: #6B7280;"/>
+                <TextField fx:id="campoTransportadora" styleClass="text-field"/>
+            </VBox>
+        </HBox>
+
+        <HBox spacing="12">
+            <VBox spacing="4" HBox.hgrow="ALWAYS">
+                <Label text="Frete (R$)" style="-fx-font-size: 11px; -fx-text-fill: #6B7280;"/>
+                <TextField fx:id="campoTransporteRs" promptText="0,00" styleClass="text-field"/>
+            </VBox>
+            <VBox spacing="4" HBox.hgrow="ALWAYS">
+                <Label text="Desconto (R$)" style="-fx-font-size: 11px; -fx-text-fill: #6B7280;"/>
+                <TextField fx:id="campoDescontoRs" promptText="0,00" styleClass="text-field"/>
+            </VBox>
+            <VBox spacing="4" HBox.hgrow="ALWAYS">
+                <Label text="Peso bruto (kg)" style="-fx-font-size: 11px; -fx-text-fill: #6B7280;"/>
+                <TextField fx:id="campoPesoBruto" promptText="0,00" styleClass="text-field"/>
+            </VBox>
+            <VBox spacing="4" HBox.hgrow="ALWAYS">
+                <Label text="Peso líquido (kg)" style="-fx-font-size: 11px; -fx-text-fill: #6B7280;"/>
+                <TextField fx:id="campoPesoLiquido" promptText="0,00" styleClass="text-field"/>
+            </VBox>
+        </HBox>
+
+        <Separator/>
+
+        <Label text="Produtos da Nota"
+               style="-fx-font-size: 12px; -fx-font-weight: 600;"/>
+
+        <TableView fx:id="tabelaProdutos" prefHeight="120" styleClass="table-view">
+            <columns>
+                <TableColumn fx:id="colProdNome"    text="Produto"     prefWidth="210"/>
+                <TableColumn fx:id="colProdUnidade" text="Unidade"     prefWidth="75"/>
+                <TableColumn fx:id="colProdQtd"     text="Quantidade"  prefWidth="95"/>
+                <TableColumn fx:id="colProdVrUnit"  text="Vr Unitário" prefWidth="105"/>
+                <TableColumn fx:id="colProdVrTotal" text="Vr Total"    prefWidth="105"/>
+            </columns>
+            <placeholder>
+                <Label text="Nenhum produto adicionado."
+                       style="-fx-text-fill: #9CA3AF; -fx-font-size: 11px;"/>
+            </placeholder>
+        </TableView>
+
+        <HBox spacing="8" alignment="BOTTOM_LEFT">
+            <VBox spacing="4" HBox.hgrow="ALWAYS">
+                <Label text="Produto" style="-fx-font-size: 11px; -fx-text-fill: #6B7280;"/>
+                <ComboBox fx:id="comboProduto" maxWidth="Infinity" styleClass="combo-box"/>
+            </VBox>
+            <VBox spacing="4" prefWidth="85">
+                <Label text="Quantidade" style="-fx-font-size: 11px; -fx-text-fill: #6B7280;"/>
+                <TextField fx:id="campoQtd" styleClass="text-field" promptText="0,00"/>
+            </VBox>
+            <VBox spacing="4" prefWidth="85">
+                <Label text="Unidade" style="-fx-font-size: 11px; -fx-text-fill: #6B7280;"/>
+                <ComboBox fx:id="comboUnidade" prefWidth="85"/>
+            </VBox>
+            <VBox spacing="4" prefWidth="100">
+                <Label text="Vr Unitário" style="-fx-font-size: 11px; -fx-text-fill: #6B7280;"/>
+                <TextField fx:id="campoVrUnit" styleClass="text-field" promptText="0,00"/>
+            </VBox>
+            <VBox spacing="4" prefWidth="100">
+                <Label text="Vr Total" style="-fx-font-size: 11px; -fx-text-fill: #6B7280;"/>
+                <TextField fx:id="campoVrTotalItem" styleClass="text-field" promptText="0,00"/>
+            </VBox>
+        </HBox>
+
+        <HBox spacing="8" alignment="CENTER_RIGHT">
+            <Button text="+ Adicionar Produto" styleClass="btn-secondary"
+                    onAction="#adicionarProduto"/>
+            <Button text="Remover Selecionado" styleClass="btn-danger"
+                    onAction="#removerProduto"/>
+        </HBox>
+
+        <Separator/>
+
+        <HBox spacing="10" alignment="CENTER_RIGHT">
+            <Button text="Cancelar" styleClass="btn-secondary" onAction="#cancelar"/>
+            <Button fx:id="btnSalvar" text="Salvar" styleClass="btn-primary" onAction="#salvar"/>
+        </HBox>
+
     </VBox>
-
-    <HBox spacing="16">
-        <VBox spacing="6" HBox.hgrow="ALWAYS">
-            <Label text="Ordem de compra" style="-fx-font-size: 12px; -fx-text-fill: #6B7280;"/>
-            <TextField fx:id="campoOrdemCompra" styleClass="text-field"/>
-        </VBox>
-        <VBox spacing="6" HBox.hgrow="ALWAYS">
-            <Label text="Transportadora" style="-fx-font-size: 12px; -fx-text-fill: #6B7280;"/>
-            <TextField fx:id="campoTransportadora" styleClass="text-field"/>
-        </VBox>
-    </HBox>
-
-    <HBox spacing="16">
-        <VBox spacing="6" HBox.hgrow="ALWAYS">
-            <Label text="Frete (R$)" style="-fx-font-size: 12px; -fx-text-fill: #6B7280;"/>
-            <TextField fx:id="campoTransporteRs" promptText="0,00" styleClass="text-field"/>
-        </VBox>
-        <VBox spacing="6" HBox.hgrow="ALWAYS">
-            <Label text="Desconto (R$)" style="-fx-font-size: 12px; -fx-text-fill: #6B7280;"/>
-            <TextField fx:id="campoDescontoRs" promptText="0,00" styleClass="text-field"/>
-        </VBox>
-        <VBox spacing="6" HBox.hgrow="ALWAYS">
-            <Label text="Peso bruto (kg)" style="-fx-font-size: 12px; -fx-text-fill: #6B7280;"/>
-            <TextField fx:id="campoPesoBruto" promptText="0,00" styleClass="text-field"/>
-        </VBox>
-        <VBox spacing="6" HBox.hgrow="ALWAYS">
-            <Label text="Peso líquido (kg)" style="-fx-font-size: 12px; -fx-text-fill: #6B7280;"/>
-            <TextField fx:id="campoPesoLiquido" promptText="0,00" styleClass="text-field"/>
-        </VBox>
-    </HBox>
-
-    <Separator/>
-
-    <Label text="Produtos da Nota"
-           style="-fx-font-size: 13px; -fx-font-weight: 600;"/>
-
-    <TableView fx:id="tabelaProdutos" prefHeight="140" styleClass="table-view">
-        <columns>
-            <TableColumn fx:id="colProdNome"    text="Produto"     prefWidth="220"/>
-            <TableColumn fx:id="colProdUnidade" text="Unidade"     prefWidth="80"/>
-            <TableColumn fx:id="colProdQtd"     text="Quantidade"  prefWidth="100"/>
-            <TableColumn fx:id="colProdVrUnit"  text="Vr Unitário" prefWidth="110"/>
-            <TableColumn fx:id="colProdVrTotal" text="Vr Total"    prefWidth="110"/>
-        </columns>
-        <placeholder>
-            <Label text="Nenhum produto adicionado."
-                   style="-fx-text-fill: #9CA3AF; -fx-font-size: 12px;"/>
-        </placeholder>
-    </TableView>
-
-    <HBox spacing="10" alignment="BOTTOM_LEFT">
-        <VBox spacing="6" HBox.hgrow="ALWAYS">
-            <Label text="Produto" style="-fx-font-size: 12px; -fx-text-fill: #6B7280;"/>
-            <ComboBox fx:id="comboProduto" maxWidth="Infinity" styleClass="combo-box"/>
-        </VBox>
-        <VBox spacing="6" prefWidth="90">
-            <Label text="Quantidade" style="-fx-font-size: 12px; -fx-text-fill: #6B7280;"/>
-            <TextField fx:id="campoQtd" styleClass="text-field" promptText="0,00"/>
-        </VBox>
-        <VBox spacing="6" prefWidth="90">
-            <Label text="Unidade" style="-fx-font-size: 12px; -fx-text-fill: #6B7280;"/>
-            <ComboBox fx:id="comboUnidade" prefWidth="90"/>
-        </VBox>
-        <VBox spacing="6" prefWidth="110">
-            <Label text="Vr Unitário" style="-fx-font-size: 12px; -fx-text-fill: #6B7280;"/>
-            <TextField fx:id="campoVrUnit" styleClass="text-field" promptText="0,00"/>
-        </VBox>
-        <VBox spacing="6" prefWidth="110">
-            <Label text="Vr Total" style="-fx-font-size: 12px; -fx-text-fill: #6B7280;"/>
-            <TextField fx:id="campoVrTotalItem" styleClass="text-field" promptText="0,00"/>
-        </VBox>
-    </HBox>
-
-    <HBox spacing="8" alignment="CENTER_RIGHT">
-        <Button text="+ Adicionar Produto" styleClass="btn-secondary"
-                onAction="#adicionarProduto"/>
-        <Button text="Remover Selecionado" styleClass="btn-danger"
-                onAction="#removerProduto"/>
-    </HBox>
-
-    <Separator/>
-
-    <HBox spacing="10" alignment="CENTER_RIGHT">
-        <Button text="Cancelar" styleClass="btn-secondary" onAction="#cancelar"/>
-        <Button fx:id="btnSalvar" text="Salvar" styleClass="btn-primary" onAction="#salvar"/>
-    </HBox>
-
-</VBox>
+</ScrollPane>
