@@ -6,7 +6,7 @@
             xmlns:fx="http://javafx.com/fxml/1"
             fx:controller="com.fundicao.controller.NotaFiscalDialogController"
             fitToWidth="true"
-            maxHeight="780"
+            maxHeight="680"
             style="-fx-padding: 0;">
 
     <VBox spacing="10" style="-fx-padding: 16; -fx-min-width: 700; -fx-max-width: 820;">
