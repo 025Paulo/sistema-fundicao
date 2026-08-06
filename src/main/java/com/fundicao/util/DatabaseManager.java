@@ -111,36 +111,28 @@ public class DatabaseManager {
 
     private void aplicarMigracoes(Statement stmt, int versaoAtual) throws SQLException {
 
-        // ── v0/v1 → v2 ──────────────────────────────────────────────────────
-        // Adicionava vr_unitario / vr_total como colunas extras.
-        // Mantido para bancos que nunca rodaram v2.
         if (versaoAtual < 2) {
             adicionarColunaSeNaoExistir(stmt, "nota_produtos", "vr_unitario", "REAL DEFAULT 0");
             adicionarColunaSeNaoExistir(stmt, "nota_produtos", "vr_total",    "REAL DEFAULT 0");
             executarSilencioso(stmt,
-                "UPDATE nota_produtos SET vr_unitario = valor_unitario WHERE vr_unitario = 0 AND valor_unitario IS NOT NULL");
+                    "UPDATE nota_produtos SET vr_unitario = valor_unitario WHERE vr_unitario = 0 AND valor_unitario IS NOT NULL");
             executarSilencioso(stmt,
-                "UPDATE nota_produtos SET vr_total = valor_total WHERE vr_total = 0 AND valor_total IS NOT NULL");
+                    "UPDATE nota_produtos SET vr_total = valor_total WHERE vr_total = 0 AND valor_total IS NOT NULL");
             definirVersaoSchema(stmt, 2);
             System.out.println("[DB] Migração v2 aplicada.");
         }
 
-        // ── v2 → v3 ──────────────────────────────────────────────────────────
-        // Problema: a tabela nota_produtos original tinha valor_unitario NOT NULL
-        // e valor_total NOT NULL, bloqueando INSERTs que não preenchem essas colunas.
-        // No SQLite não é possível remover NOT NULL via ALTER TABLE —
-        // a solução é recriar a tabela com o schema correto.
+        if (versaoAtual < 3) {
+            recriarNotaProdutos(stmt);
+            definirVersaoSchema(stmt, 3);
+            System.out.println("[DB] Migração v3 aplicada: tabela nota_produtos recriada sem NOT NULL.");
+        }
+
         if (versaoAtual < 4) {
             adicionarColunaSeNaoExistir(stmt, "nota_produtos", "unidade_medida", "TEXT DEFAULT 'UND'");
             definirVersaoSchema(stmt, 4);
             System.out.println("[DB] Migração v4 aplicada: coluna unidade_medida adicionada.");
         }
-
-        // ── Adicione próximas migrações aqui ─────────────────────────────────
-        // if (versaoAtual < 4) {
-        //     ...
-        //     definirVersaoSchema(stmt, 4);
-        // }
     }
 
     /**
