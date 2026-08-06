@@ -39,7 +39,6 @@ public class NotaFiscalDialogController {
     @FXML private TableColumn<NotaProduto, String> colProdUnidade;
     @FXML private ComboBox<String> comboUnidade;
 
-
     // ── Tabela de produtos da nota ──────────────────────────────────────────
     @FXML private TableView<NotaProduto>           tabelaProdutos;
     @FXML private TableColumn<NotaProduto, String> colProdNome;
@@ -83,13 +82,9 @@ public class NotaFiscalDialogController {
         });
         tabelaProdutos.setItems(produtos);
 
-        // auto-calcula Vr Total ao sair dos campos Qtd ou VrUnit
-        campoVrUnit.focusedProperty().addListener((obs, old, focused) -> {
-            if (!focused) calcularTotal();
-        });
-        campoQtd.focusedProperty().addListener((obs, old, focused) -> {
-            if (!focused) calcularTotal();
-        });
+        // Calcula Vr Total em tempo real enquanto o usuário digita
+        campoVrUnit.textProperty().addListener((obs, old, novo) -> calcularTotal());
+        campoQtd.textProperty().addListener((obs, old, novo) -> calcularTotal());
 
         carregarEntidades();
         carregarProdutos();
@@ -161,6 +156,19 @@ public class NotaFiscalDialogController {
             AlertUtil.aviso("Selecione um produto antes de adicionar.");
             return;
         }
+
+        Double qtd    = parseDouble(campoQtd.getText());
+        Double vrUnit = parseDouble(campoVrUnit.getText());
+
+        if (qtd == null || qtd <= 0) {
+            AlertUtil.aviso("Informe uma quantidade válida (maior que zero).");
+            return;
+        }
+        if (vrUnit == null || vrUnit < 0) {
+            AlertUtil.aviso("Informe um valor unitário válido (maior ou igual a zero).");
+            return;
+        }
+
         boolean jaExiste = produtos.stream()
                 .anyMatch(np -> np.getProdutoId() == prod.getId());
         if (jaExiste) {
@@ -168,12 +176,14 @@ public class NotaFiscalDialogController {
             return;
         }
 
+        double vrTotal = qtd * vrUnit;
+
         NotaProduto np = new NotaProduto();
         np.setProdutoId(prod.getId());
         np.setProdutoDescricao(prod.getDescricao());
-        np.setQuantidade(parseDouble(campoQtd.getText()));
-        np.setVrUnitario(parseDouble(campoVrUnit.getText()));
-        np.setVrTotal(parseDouble(campoVrTotalItem.getText()));
+        np.setQuantidade(qtd);
+        np.setVrUnitario(vrUnit);
+        np.setVrTotal(vrTotal);
         np.setUnidadeMedida(comboUnidade.getValue() != null ? comboUnidade.getValue() : "UND");
         produtos.add(np);
 
@@ -208,6 +218,8 @@ public class NotaFiscalDialogController {
         Double unit = parseDouble(campoVrUnit.getText());
         if (qtd != null && unit != null) {
             campoVrTotalItem.setText(String.format("%.2f", qtd * unit));
+        } else {
+            campoVrTotalItem.clear();
         }
     }
 
@@ -257,6 +269,9 @@ public class NotaFiscalDialogController {
         }
         if (campoData.getValue() == null) {
             AlertUtil.erro("Informe a data."); return false;
+        }
+        if (produtos.isEmpty()) {
+            AlertUtil.erro("Adicione ao menos um produto à nota fiscal."); return false;
         }
         return true;
     }
